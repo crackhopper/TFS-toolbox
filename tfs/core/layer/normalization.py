@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import ops
 from base import Layer
+import tfs.core.initializer.init_func as init
 
 class LRN(Layer):
   def __init__(self,
@@ -48,14 +49,14 @@ class BN(Layer):
     scale_offset = self.param.scale_offset
     shape = [input_shape[-1]]
     if scale_offset:
-      scale = self._make_variable('scale', shape=shape)
-      offset = self._make_variable('offset', shape=shape)
+      scale = self._make_variable('scale', shape=shape,init=init.constant())
+      offset = self._make_variable('offset', shape=shape,init=init.constant())
     else:
       scale, offset = (None, None)
     output = tf.nn.batch_normalization(
       inTensor,
-      mean=self._make_variable('mean', shape=shape),
-      variance=self._make_variable('variance', shape=shape),
+      mean=self._make_variable('mean', shape=shape,init=init.constant()),
+      variance=self._make_variable('variance', shape=shape,init=init.constant()),
       offset=offset,
       scale=scale,
       # TODO: This is the default Caffe batch norm eps

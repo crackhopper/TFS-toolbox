@@ -2,10 +2,11 @@ import pytest
 import tensorflow as tf
 import numpy as np
 
-from tfs.network.base import Network
+from tfs.network.base import Network,CustomNetwork
 
-class MyNet(Network):
+class MyNet(CustomNetwork):
   def setup(self):
+    self.default_in_shape=[1,10,10,2]
     (self.layers
      .conv2d([3,3],4,[1,1],group=2)
      .maxpool([2,2],[2,2]))
@@ -18,6 +19,7 @@ def n():
 class TestNetwork:
   def test_init(self):
     n = Network()
+    n.build([1,1,1,1])
 
   def test_build(self,n):
     assert not n.has_built()
@@ -41,6 +43,7 @@ class TestNetwork:
       assert l.net != l1.net
 
     assert n.graph != n1.graph
+
 
     # TODO: after adding initializer, test the results are same
   def test_subnet(self,n):

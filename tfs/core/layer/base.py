@@ -1,8 +1,8 @@
 import numpy as np
 import inspect
-import types
 from tfs.core.util import local_variable_scope,run_once_for_each_obj
 import tensorflow as tf
+from tfs.core.elem import Param
 
 easyname_dict={
   "Layer":"Layer",
@@ -15,23 +15,6 @@ easyname_dict={
   "BN":'BN',
 }
 
-class Param(object):
-  def __str__(self):
-    info=[]
-    for k in self.__dict__:
-      value = self.__dict__[k]
-      if isinstance(value,types.FunctionType):
-        value = value.__module__ +'.'+ value.__name__
-      info.append('%s :  %s'%(k,str(value)))
-    return '\n'.join(info)
-
-  def __eq__(self,other):
-    return self.__dict__==other.__dict__
-
-  def copy(self):
-    obj = Param()
-    obj.__dict__ = self.__dict__.copy()
-    return obj
 
 class Layer(object):
   def __init__(self,name=None):
@@ -48,6 +31,15 @@ class Layer(object):
     self._in = None
     self._out = None
     self._variables = {}
+    self._initializers = {}
+
+  @property
+  def variables(self):
+    return self._variables
+
+  @property
+  def initializers(self):
+    return self._initializers
 
   @property
   def input(self):
@@ -76,9 +68,11 @@ class Layer(object):
     return self._out
 
   @local_variable_scope
-  def _make_variable(self,vname,shape):
+  def _make_variable(self,vname,shape,init):
     v=tf.get_variable(vname, shape=shape)
+    v.tfs_node = self
     self._variables[vname]=v
+    self._initializers[vname]=init
     return v
 
   def _build(self):

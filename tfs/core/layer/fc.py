@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import ops
 from base import Layer
+import tfs.core.initializer.init_func as init
 
 class FullyConnect(Layer):
   def __init__(self,
@@ -25,8 +26,8 @@ class FullyConnect(Layer):
       output = tf.reshape(inTensor, [-1,dim])
     else:
       output, dim = (inTensor, input_shape[-1].value)
-    weights = self._make_variable('weights', shape=[dim, self.param.outdim])
-    biases = self._make_variable('biases', [self.param.outdim])
+    weights = self._make_variable('weights', shape=[dim, self.param.outdim],init=init.xavier())
+    biases = self._make_variable('biases', [self.param.outdim],init=init.constant())
     output = tf.nn.xw_plus_b(output, weights, biases,name=self.name)
     if self.param.activation:
       output= self.param.activation(output, name=self.name)

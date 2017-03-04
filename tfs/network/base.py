@@ -1,7 +1,9 @@
 import tensorflow as tf
 import numpy as np
 from tfs.core.layer import func_table
+from tfs.core.initializer import DefaultInit,InitType
 from tfs.core.util import run_once_for_each_obj
+from tensorflow.python.util.deprecation import deprecated
 import new
 #################### NetStructure
 def _layer_function(layerclass):
@@ -20,39 +22,52 @@ class NetStructure(object):
   __metaclass__ = _net_sturcture_meta
   """This class is used for define a network structure by using layers.
   """
-  def __init__(self,net,layers=None):
-    layers = layers or []
-    self.layers=layers
+  def __init__(self,net,nodes=None):
+    nodes = nodes or []
+    self._nodes=nodes
     self.net = net
+    self._need_built = True
 
   def append(self,l):
     self._need_built = True
     l.net = self.net
-    self.layers.append(l)
+    self.nodes.append(l)
 
   def __getitem__(self,i):
-    return self.layers[i]
+    return self.nodes[i]
 
   def copy_to(self,net):
     res = NetStructure(net)
-    for l in self.layers:
-      res.layers.append(l.copy_to(net))
+    for l in self.nodes:
+      res.nodes.append(l.copy_to(net))
     return res
 
   def _built_lut(self):
     if not self._need_built: return
     self._lut = {}
-    for l in self.layers:
+    self._lut2 = {}
+    for i,l in enumerate(self.nodes):
       self._lut[l.name]=l
+      self._lut2[l.name]=i
 
   def by_name(self,name):
     self._built_lut()
     return self._lut[name]
 
+  def find_index(self,l):
+    self._built_lut()
+    return self._lut2[l.name]
+
   def names(self):
     self._built_lut()
     return self._lut.keys()
 
+  @property
+  def nodes(self):
+    return self._nodes
+
+  def __len__(self):
+    return len(self.nodes)
 #################### Network
 # decorators
 def with_graph(f):
@@ -71,14 +86,33 @@ class Network(object):
     self._graph = tf.Graph()
     with self.graph.as_default():
       self._sess = tf.Session()
+    self.variables = {}
+    self.initializer = DefaultInit(self)
+
+  def __len__(self):
+    return len(self.net_def)
 
   @property
+  @deprecated("2017-05-01", "Use `net_def` instead.")
   def layers(self):
     return self._struct
 
   @property
   def net_def(self):
     return self._struct
+
+  def node_to_index(self,l):
+    return self.net_def.find_index(l)
+
+  def node_by_index(self,idx):
+    return self.net_def[idx]
+
+  @deprecated("2017-05-01", "Use `node_by_name` instead.")
+  def layer_by_name(self,name):
+    return self.net_def.by_name(name)
+
+  def node_by_name(self,name):
+    return self.net_def.by_name(name)
 
   def __del__(self):
     self.sess.close()
@@ -89,13 +123,10 @@ class Network(object):
 
   def setup_with_def(self,struct_def,in_shape=None):
     if isinstance(struct_def,list):
-      struct_def = NetStructure(self,layers=struct_def)
+      struct_def = NetStructure(self,nodes=struct_def)
     self._struct = struct_def.copy_to(self)
     if in_shape:
       self.build(in_shape)
-
-  def layer_by_name(self,name):
-    return self.net_def.by_name(name)
 
   @property
   def graph(self):
@@ -124,7 +155,36 @@ class Network(object):
     for l in self.layers:
       tmp = l.build(tmp)
     self._out = tmp
+    self.build_variables_table()
+    self._build_init_op()
+    self._initialize()
     return tmp
+
+  def _build_init_op(self):
+    t,initor = self.initializer.init_table
+    if t == InitType.values:
+      self._build_init_op_by_val(initor)
+    elif t == InitType.ops:
+      self._build_init_op_by_ops(initor)
+    else:
+      assert isinstance(initor,tf.Operation)
+      self.init_op = initor
+
+  def _build_init_op_by_val(self,tbl):
+    ops = []
+    for n in tbl:
+      v = self.variables[n]
+      ops.append(tf.assign(v,tbl[n]))
+    self._build_init_op_by_ops(ops)
+
+  def _build_init_op_by_ops(self,initor):
+    self.init_op = tf.group(*initor)
+
+  def build_variables_table(self):
+    for l in self.net_def:
+      for k in l.variables:
+        v = l.variables[k]
+        self.variables[v.name] = v
 
   def has_built(self):
     if hasattr(self,'_has_run'):
@@ -135,9 +195,9 @@ class Network(object):
   def run(self,eval_list,feed_dict):
     return self.sess.run(eval_list, feed_dict=feed_dict)
 
-  @with_graph
-  def initialize(self):
-    return self.sess.run(tf.global_variables_initializer())
+  def _initialize(self):
+    assert self.has_built()
+    return self.sess.run(self.init_op)
 
   @with_graph
   def load(self, data_path, ignore_missing=False):
@@ -194,5 +254,9 @@ class CustomNetwork(Network):
 
   def setup(self):
     raise NotImplementedError("CustomNetwork Must Implement setup Method")
+
+  def build(self,inshape=None):
+    inshape = inshape or self.default_in_shape
+    return Network.build(self,inshape)
 
 

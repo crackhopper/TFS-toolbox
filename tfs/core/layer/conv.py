@@ -1,6 +1,7 @@
 import tensorflow as tf
 import ops
 from base import Layer
+import tfs.core.initializer.init_func as init
 
 class Conv2d(Layer):
   def __init__(self,
@@ -37,7 +38,7 @@ class Conv2d(Layer):
     convolve = lambda i, k: tf.nn.conv2d(i, k, [1,sx,sy,1], padding=self.param.padding)
 
     kernel_shape = [k_h, k_w, c_i / group, c_o]
-    kernel = self._make_variable('weights', shape=kernel_shape)
+    kernel = self._make_variable('weights', shape=kernel_shape,init=init.xavier())
     if group == 1:
       # This is the common-case. Convolve the input without any further complications.
       output = convolve(self._in, kernel)
@@ -51,7 +52,7 @@ class Conv2d(Layer):
     # Add the biases
     if self.param.biased:
       biases_shape = [c_o]
-      biases = self._make_variable('biases', biases_shape)
+      biases = self._make_variable('biases', biases_shape,init=init.constant())
       output = tf.nn.bias_add(output, biases)
     if self.param.activation:
       output = self.param.activation(output, name=self.name)

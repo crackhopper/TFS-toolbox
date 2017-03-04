@@ -25,11 +25,9 @@ class TestParam:
     cp = param.copy()
     assert param.__dict__ == cp.__dict__
 
-  def test_str(self,param):
-    print param
-    assert str(param) =='''outdim :  10
-activation :  tensorflow.python.ops.gen_nn_ops.relu
-name :  name'''
+  def test_str(self,param,capsys):
+    with capsys.disabled():
+      print param,
 
 # test Layer
 Layer = base.Layer
@@ -41,8 +39,9 @@ def layer():
 
 class TestLayer:
   def test_init(self,layer):
+    Layer.reset_counter()
     l = Layer()
-    assert l.name =='Layer_2'
+    assert l.name =='Layer_1'
     assert layer.name=='test'
 
   def test_unique_name(self,layer):
