@@ -71,6 +71,7 @@ class Layer(object):
   def _make_variable(self,vname,shape,init):
     v=tf.get_variable(vname, shape=shape)
     v.tfs_node = self
+    v.tfs_basename = vname
     self._variables[vname]=v
     self._initializers[vname]=init
     return v

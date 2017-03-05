@@ -23,3 +23,18 @@ class AllConstantInitializer(DefaultValueInit):
     op = init_func.constant(self.param.val)
     return op(shape,dtype)
 
+
+class CaffeTensorflowLoader(DefaultOpInit):
+  def __init__(self,netobj,filename):
+    super(CaffeTensorflowLoader,self).__init__(
+      netobj,
+      filename
+    )
+    self.data_dict = np.load(self.param.filename).item()
+
+  def init_layer_by_op(self,var):
+    data_dict = self.data_dict
+    node = var.tfs_node
+    name = var.tfs_basename
+    return tf.assign(node.variables[name],data_dict[node.name][name])
+

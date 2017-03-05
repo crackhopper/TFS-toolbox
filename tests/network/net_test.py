@@ -1,8 +1,8 @@
 import pytest
 import tensorflow as tf
 import numpy as np
-
 from tfs.network.base import Network,CustomNetwork
+import shutil
 
 class MyNet(CustomNetwork):
   def setup(self):
@@ -43,6 +43,32 @@ class TestNetwork:
       assert l.net != l1.net
 
     assert n.graph != n1.graph
+
+  def test_save_load(self,n,tmpdir):
+    tmpdir = str(tmpdir)
+    n.save(tmpdir+'unbuild')
+    n1 = Network()
+    n1.load(tmpdir+'unbuild')
+    assert not n1.has_built()
+    for i,node in enumerate(n1.net_def):
+      assert node.param == n.node_by_index(i).param
+      assert node.name == n.node_by_index(i).name
+      assert node.net == n1
+      assert node.variables=={}
+      assert node.initializers=={}
+      assert node.input == None
+      assert node.output == None
+
+    n.build([None,10,10,4])
+    n.save(tmpdir+'build')
+    n1 = Network()
+    n1.load(tmpdir+'build')
+    assert n1.has_built()
+    for k,v in n1.variables.items():
+      cmp=(n1.run(v)==n.run(n.variables[k]))
+      assert cmp.all()
+    assert n1.in_shape == n.in_shape
+    shutil.rmtree(tmpdir)
 
 
     # TODO: after adding initializer, test the results are same

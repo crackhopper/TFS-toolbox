@@ -1,9 +1,10 @@
 import tensorflow as tf
 import numpy as np
 from tfs.core.layer import func_table
-from tfs.core.initializer import DefaultInit,InitType
+from tfs.core.initializer import DefaultInit,InitType,Initializer
 from tfs.core.util import run_once_for_each_obj
 from tensorflow.python.util.deprecation import deprecated
+import pickle
 import new
 #################### NetStructure
 def _layer_function(layerclass):
@@ -24,9 +25,36 @@ class NetStructure(object):
   """
   def __init__(self,net,nodes=None):
     nodes = nodes or []
-    self._nodes=nodes
-    self.net = net
+    self._net = net
+    self.nodes=nodes
+
+  @property
+  def in_shape(self):
+    return self.net.in_shape
+
+  def _adjust(self):
+    def _setnet(n):
+      n.net=self.net
+    map(_setnet, self._nodes)
+
+  @property
+  def net(self):
+    return self._net
+
+  @net.setter
+  def net(self,net):
+    self._net = net
+    self._adjust()
+
+  @property
+  def nodes(self):
+    return self._nodes
+
+  @nodes.setter
+  def nodes(self,nodes):
+    self._nodes = nodes
     self._need_built = True
+    self._adjust()
 
   def append(self,l):
     self._need_built = True
@@ -62,12 +90,22 @@ class NetStructure(object):
     self._built_lut()
     return self._lut.keys()
 
-  @property
-  def nodes(self):
-    return self._nodes
-
   def __len__(self):
     return len(self.nodes)
+
+  def save(self,filename):
+    f=open(filename,'wb')
+    nodes = [n.copy_to(None) for n in self.nodes]
+    pickle.dump([nodes,self.in_shape],f)
+    f.close()
+
+  def load(self,filename):
+    f=open(filename,'rb')
+    self.nodes,in_shape = pickle.load(f)
+    if in_shape:
+      self.net.build(in_shape)
+    f.close()
+
 #################### Network
 # decorators
 def with_graph(f):
@@ -156,29 +194,32 @@ class Network(object):
       tmp = l.build(tmp)
     self._out = tmp
     self.build_variables_table()
-    self._build_init_op()
     self._initialize()
     return tmp
 
-  def _build_init_op(self):
-    t,initor = self.initializer.init_table
+  def _initialize(self):
+    # TODO: check if need initialize
+    self.run_initor(self.initializer)
+
+  def _get_init_op(self,initor):
+    t,initor = initor.init_table
     if t == InitType.values:
-      self._build_init_op_by_val(initor)
+      return self._get_init_op_by_val(initor)
     elif t == InitType.ops:
-      self._build_init_op_by_ops(initor)
+      return self._get_init_op_by_ops(initor)
     else:
       assert isinstance(initor,tf.Operation)
-      self.init_op = initor
+      return initor
 
-  def _build_init_op_by_val(self,tbl):
-    ops = []
-    for n in tbl:
-      v = self.variables[n]
-      ops.append(tf.assign(v,tbl[n]))
-    self._build_init_op_by_ops(ops)
 
-  def _build_init_op_by_ops(self,initor):
-    self.init_op = tf.group(*initor)
+  def _get_init_op_by_val(self,tbl):
+    return self._get_init_op_by_ops({
+      n:tf.assign(self.variables[n],val)
+      for n,val in tbl.items()
+    })
+
+  def _get_init_op_by_ops(self,initor):
+    return tf.group(*initor.values())
 
   def build_variables_table(self):
     for l in self.net_def:
@@ -192,30 +233,37 @@ class Network(object):
         return True
     return False
 
-  def run(self,eval_list,feed_dict):
+  def run(self,eval_list,feed_dict=None):
     return self.sess.run(eval_list, feed_dict=feed_dict)
 
-  def _initialize(self):
-    assert self.has_built()
-    return self.sess.run(self.init_op)
+  def run_initor(self,initor):
+    assert isinstance(initor,Initializer)
+    op = self._get_init_op(initor)
+    return self.sess.run(op)
 
-  @with_graph
-  def load(self, data_path, ignore_missing=False):
-    '''Load network weights.
-    data_path: The path to the numpy-serialized network weights
-    session: The current TensorFlow session
-    ignore_missing: If true, serialized weights for missing layers are ignored.
-    '''
-    data_dict = np.load(data_path).item()
-    for op_name in data_dict:
-      with tf.variable_scope(op_name, reuse=True):
-        for param_name, data in data_dict[op_name].iteritems():
-          try:
-            var = tf.get_variable(param_name)
-            self.sess.run(var.assign(data))
-          except ValueError:
-            if not ignore_missing:
-              raise
+  def save(self,filename):
+    self.save_def(filename)
+    to_save={}
+    for k,v in self.variables.items():
+      to_save[k]=self.run(v)
+    f=open(filename+'.model','wb')
+    pickle.dump(to_save,f)
+    f.close()
+
+  def save_def(self,filename):
+    self.net_def.save(filename+'.def')
+
+  def load(self,filename):
+    self.load_def(filename)
+    f=open(filename+'.model','rb')
+    data_dict=pickle.load(f)
+    f.close()
+    if self.has_built():
+      op = self._get_init_op_by_val(data_dict)
+      self.run(op)
+
+  def load_def(self,filename):
+    self.net_def.load(filename+'.def')
 
   @property
   def in_shape(self):

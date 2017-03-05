@@ -18,7 +18,10 @@ import pickle
 f=open('/Users/crackhopper/proj/data/data_blob.npy','rb')
 data_blob = pickle.load(f)
 data_blob = data_blob.transpose((0,2,3,1))
-net.load('/Users/crackhopper/proj/github/caffe-tensorflow/caffenet.npy')
+
+from tfs.core.initializer import CaffeTensorflowLoader
+init = CaffeTensorflowLoader(net,'/Users/crackhopper/proj/github/caffe-tensorflow/caffenet.npy')
+net.run_initor(init)
 
 from tfs.core.util import *
 

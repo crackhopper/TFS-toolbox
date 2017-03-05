@@ -59,8 +59,9 @@ class Initializer(object):
           tbl[v.name] = self.init_layer_by_val(v.get_shape().as_list(),v.dtype.base_dtype)
           assert isinstance(tbl[v.name],tf.Tensor) or isinstance(tbl[v.name],np.ndarray)
         elif self.ret_type == InitType.ops:
-          tbl[v.name] = self.init_layer_by_op(v)
-          assert isinstance(tbl[v.name],tf.Operation)
+          with self.net.graph.as_default():
+            tbl[v.name] = self.init_layer_by_op(v)
+          assert isinstance(tbl[v.name],tf.Tensor)
         else:
           raise ValueError("Unsupport intializier type: %d"%self.ret_type)
         self._cur_node = None
