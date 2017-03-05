@@ -78,6 +78,11 @@ class TestNetwork:
     if has_gpu:
       n.num_gpu=2
       n.build([None,10,10,4])
+      with capsys.disabled():
+        for i,o in zip(n.input,n.output):
+          print i.name,i.device
+          print o.name,o.device
+        #print n.tf_graph_str()
 
 
     # TODO: after adding initializer, test the results are same

@@ -196,7 +196,7 @@ class Network(object):
     return self._sess
 
   def _init_in_out_size(self):
-    if self.num_gpu:
+    if self.num_gpu and self._in is None and self._out is None:
       self._in = [None]*self.num_gpu
       self._out = [None]*self.num_gpu
 
@@ -232,18 +232,18 @@ class Network(object):
   def _build(self,input_shape,dtype,idx=None):
     self._init_in_out_size()
     tmp = tf.placeholder(dtype,input_shape)
-    if idx:
-      self._in[idx] = tmp
-    else:
+    if idx is None:
       self._in = tmp
+    else:
+      self._in[idx] = tmp
 
     for l in self.layers:
       tmp = l.build(tmp,idx)
 
-    if idx:
-      self._out[idx] = tmp
-    else:
+    if idx is None:
       self._out = tmp
+    else:
+      self._out[idx] = tmp
 
     return tmp
 
