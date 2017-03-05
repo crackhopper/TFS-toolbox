@@ -1,11 +1,18 @@
 import tensorflow as tf
 import numpy as np
-from tfs.core.layer import func_table
+from tfs.core.layer import func_table,Layer
 from tfs.core.initializer import DefaultInit,InitType,Initializer
 from tfs.core.util import run_once_for_each_obj
 from tensorflow.python.util.deprecation import deprecated
 import pickle
 import new
+from tensorflow.python.client import device_lib
+
+# for supporting multi-gpu:
+# https://github.com/tensorflow/tensorflow/blob/r0.7/tensorflow/models/image/cifar10/cifar10_multi_gpu_train.py#L174
+#
+# we use shared variables on CPU and model distributed on each GPU
+#
 #################### NetStructure
 def _layer_function(layerclass):
   def func(self,*args,**kwargs):
@@ -126,6 +133,12 @@ class Network(object):
       self._sess = tf.Session()
     self.variables = {}
     self.initializer = DefaultInit(self)
+    self.num_gpu = 0
+
+  @staticmethod
+  def available_devices():
+    local_device_protos = device_lib.list_local_devices()
+    return [x for x in local_device_protos]
 
   def __len__(self):
     return len(self.net_def)
@@ -182,19 +195,56 @@ class Network(object):
   def sess(self):
     return self._sess
 
+  def _init_in_out_size(self):
+    if self.num_gpu and self._in is None and self._out is None:
+      self._in = [None]*self.num_gpu
+      self._out = [None]*self.num_gpu
+
   @with_graph
   @run_once_for_each_obj
   def build(self,input_shape,dtype=tf.float32):
+    Layer.reset_counter()
     """Build the computational graph
     inTensor: the network input tensor.
     """
-    self._in = tf.placeholder(dtype,input_shape)
-    tmp = self._in
-    for l in self.layers:
-      tmp = l.build(tmp)
-    self._out = tmp
+    if not self.num_gpu:
+      self._build(input_shape,dtype)
+    else:
+      for i in range(self.num_gpu):
+        with tf.device('/gpu:%d' % i):
+          with tf.name_scope('%s_%d' % ('GPU', i)) as scope:
+            self._build(input_shape,dtype,i)
+            tf.get_variable_scope().reuse_variables()
+
     self.build_variables_table()
     self._initialize()
+    return self.output
+
+  def tf_graph_str(self):
+    info=[]
+    for n in self.graph.as_graph_def().node:
+      s = '%-20s@%20s'%(n.name,n.device)
+      if hasattr(n,'tfs_nodename'):
+        s=s+' --%s'%n.tfs_nodename
+      info.append(s)
+    return '\n'.join(info)
+
+  def _build(self,input_shape,dtype,idx=None):
+    self._init_in_out_size()
+    tmp = tf.placeholder(dtype,input_shape)
+    if idx is None:
+      self._in = tmp
+    else:
+      self._in[idx] = tmp
+
+    for l in self.layers:
+      tmp = l.build(tmp,idx)
+
+    if idx is None:
+      self._out = tmp
+    else:
+      self._out[idx] = tmp
+
     return tmp
 
   def _initialize(self):

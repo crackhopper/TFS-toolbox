@@ -41,10 +41,18 @@ class Initializer(object):
           plist.append('    %-20s%s'%(k,v))
     return '\n'.join(plist)
 
+  def _debug_print_op(self):
+    for k,v in self.init_table[1].items():
+      vnet = self.net.variables[k]
+      print k,vnet.name, vnet.device,'<-',v.name,v.device
+
   @property
   def init_table(self):
     if self._init_table is ():
-      self._init_table = (self.ret_type,self._build_init_table())
+      with self.net.graph.as_default(),tf.device('/cpu:0'):
+        self._init_table = (self.ret_type,self._build_init_table())
+        for k,v in self._init_table[1].items():
+          assert 'CPU' in v.device
     return self._init_table
 
   def _build_init_table(self):
@@ -59,8 +67,7 @@ class Initializer(object):
           tbl[v.name] = self.init_layer_by_val(v.get_shape().as_list(),v.dtype.base_dtype)
           assert isinstance(tbl[v.name],tf.Tensor) or isinstance(tbl[v.name],np.ndarray)
         elif self.ret_type == InitType.ops:
-          with self.net.graph.as_default():
-            tbl[v.name] = self.init_layer_by_op(v)
+          tbl[v.name] = self.init_layer_by_op(v)
           assert isinstance(tbl[v.name],tf.Tensor)
         else:
           raise ValueError("Unsupport intializier type: %d"%self.ret_type)
