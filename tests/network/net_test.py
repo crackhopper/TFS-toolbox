@@ -70,6 +70,15 @@ class TestNetwork:
     assert n1.in_shape == n.in_shape
     shutil.rmtree(tmpdir)
 
+  def test_device(self,n,capsys):
+    with capsys.disabled():
+      print ''
+      print [d.name for d in n.available_devices()]
+    has_gpu = ('GPU' in [d.device_type for d in n.available_devices()])
+    if has_gpu:
+      n.num_gpu=2
+      n.build([None,10,10,4])
+
 
     # TODO: after adding initializer, test the results are same
   def test_subnet(self,n):

@@ -43,11 +43,17 @@ class Layer(object):
 
   @property
   def input(self):
-    return self._in
+    if self.num_gpu:
+      return self._inlist
+    else:
+      return self._in
 
   @property
   def output(self):
-    return self._out
+    if self.num_gpu:
+      return self._outlist
+    else:
+      return self._out
 
   @run_once_for_each_obj
   def get_unique_name(self,name):
@@ -62,19 +68,38 @@ class Layer(object):
   def reset_counter(cls):
     Layer._name_counter=0
 
-  def build(self,inTensor):
+  @property
+  def num_gpu(self):
+    if self.net:
+      return self.net.num_gpu
+    return 0
+
+  def _init_in_out_size(self):
+    if self.num_gpu:
+      self._inlist = [None]*self.num_gpu
+      self._outlist = [None]*self.num_gpu
+
+  def build(self,inTensor,idx=None):
+    self._init_in_out_size()
     self._in = inTensor
-    self._out = self._build()
+    if self.num_gpu:
+      self._inlist[idx] = inTensor
+      self._outlist[idx] = self._build()
+      self._out = self._outlist[idx]
+    else:
+      self._out = self._build()
     return self._out
 
   @local_variable_scope
   def _make_variable(self,vname,shape,init):
-    v=tf.get_variable(vname, shape=shape)
-    v.tfs_node = self
-    v.tfs_basename = vname
-    self._variables[vname]=v
-    self._initializers[vname]=init
-    return v
+    # variables should be created on CPU
+    with tf.device('/cpu:0'):
+      v=tf.get_variable(vname, shape=shape)
+      v.tfs_node = self
+      v.tfs_basename = vname
+      self._variables[vname]=v
+      self._initializers[vname]=init
+      return v
 
   def _build(self):
     '''Run the layer. '''
