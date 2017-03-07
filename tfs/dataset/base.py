@@ -1,22 +1,15 @@
-# Base class for loading data
-
+from __future__ import division
 import tensorflow as tf
 import numpy as np
-
-class FileLists(list):
-  def __init__(self,filenames):
-    for f in filenames:
-      if not tf.gfile.Exists(f):
-        raise ValueError('Failed to find file: ' + f)
-    super(FileLists,self).__init__(filenames)
-
-
+from data_tool import *
+import tfs
+import os
 
 class DataSubset(object):
   def __init__(self,
                data,
-               labels,
-               dtype=tf.float32):
+               labels
+  ):
     """Construct a DataSubset.
     The first dimension should be sample id.
     """
@@ -26,6 +19,33 @@ class DataSubset(object):
     self._labels = labels
     self._epochs_completed = 0
     self._index_in_epoch = 0
+
+  def train_test_for_cv(self,n_fold):
+    """return a iterator
+    each time return a split for cross validation
+    """
+    n = self.num_examples
+    curs = [(n//n_fold)*i for i in range(n_fold)]
+    curs.append(n)
+    for i in range(n_fold):
+      test_idx = np.array([False]*self.num_examples)
+      test_idx[curs[i]:curs[i+1]]=True
+      train_idx = ~test_idx
+      train = DataSubset(
+        self.data[train_idx],
+        self.labels[train_idx]
+        )
+      test = DataSubset(
+        self.data[test_idx],
+        self.labels[test_idx]
+        )
+      yield train,test
+
+  @property
+  def shape(self):
+    if isinstance(self._data,tf.Tensor):
+      return self._data.get_shape().as_list()
+    return self._data.shape
 
   @property
   def data(self):
@@ -78,4 +98,46 @@ class DataSubset(object):
       self._index_in_epoch += batch_size
       end = self._index_in_epoch
       return self._data[start:end], self._labels[start:end]
+
+class Dataset(object):
+  def __init__(self,data_dir=None):
+    if data_dir:
+      self.data_dir = data_dir
+    else:
+      self.data_dir = tfs.config.dataset.getdir(self)
+    self.prepare()
+    self._trainX, self._trainY, self._testX, self._testY = self.load_train_test()
+    self._train = None
+    self._test = None
+
+  @property
+  def train(self):
+    if self._train is None:
+      self._train = DataSubset(self._trainX,self._trainY)
+    return self._train
+
+  @property
+  def test(self):
+    if self._test is None:
+      self._test = DataSubset(self._testX,self._testY)
+    return self._test
+
+  def prepare(self):
+    pass
+
+  def data_full_path(self,basename):
+    return os.path.join(self.data_dir,basename)
+
+  @property
+  def data_dir(self):
+    return self._data_dir
+
+  @data_dir.setter
+  def data_dir(self,_dir):
+    tfs.config.dataset.setdir(self,_dir)
+    self._data_dir = _dir
+
+  def load_train_test(self):
+    raise NotImplementedError()
+
 
