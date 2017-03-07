@@ -3,6 +3,8 @@ import numpy as np
 from tfs.core.layer import func_table,Layer
 from tfs.core.initializer import DefaultInit,InitType,Initializer
 from tfs.core.util import run_once_for_each_obj
+from tfs.core.loss import Objective,categorical_crossentropy
+from tfs.core.regularizers import Regularizer,L1
 from tensorflow.python.util.deprecation import deprecated
 import pickle
 import new
@@ -133,6 +135,8 @@ class Network(object):
       self._sess = tf.Session()
     self.variables = {}
     self.initializer = DefaultInit(self)
+    self.objective  = Objective(self)
+    self.regularizer =Regularizer(self)
     self.num_gpu = 0
 
   @staticmethod
