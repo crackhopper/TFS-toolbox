@@ -11,4 +11,3 @@ class TestLoss:
         assert netobj.true_output.get_shape().as_list()==netobj.output.get_shape().as_list()
         assert netobj.loss.get_shape().as_list()==netobj.regulization.get_shape().as_list()
         assert netobj.loss.get_shape().as_list()==netobj.objective.get_shape().as_list()
-        
