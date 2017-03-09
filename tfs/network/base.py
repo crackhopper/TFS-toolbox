@@ -269,12 +269,14 @@ class Network(object):
     # TODO: check if need initialize
     self.run_initor(self.initializer)
 
+  @with_graph
   def _compute_loss(self):
     if self.has_built():
       self._loss = self.Loss.compute()
     else:
       raise RuntimeError("The network has not been build!\n")
 
+  @with_graph
   def _compute_regulization(self):
     self._regulization = self.Regularizer.compute()
 

@@ -13,3 +13,6 @@ class TestRegulization:
         netobj=LeNet(in_shape=[1,28,28,1])
         netobj.build()
         assert netobj.regulization.graph==netobj.graph
+        with capsys.disabled():
+            for (name,value) in netobj.layers[0].variables.iteritems():
+                print value.graph

@@ -26,8 +26,7 @@ class CategoricalCrossentropy(Loss):
         x2=self.net.true_output
         assert x1.graph==x2.graph
         if isinstance(self.net.node_by_index(-1),Softmax):
-            with self.net.graph.as_default():
-                return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=x1,logits=x2))
+            return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=x1,logits=x2))
         else:
             x1/= tf.reduce_sum(x1,
                                reduction_indices=len(x1.get_shape()) - 1,

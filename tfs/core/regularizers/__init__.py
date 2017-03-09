@@ -39,9 +39,8 @@ class L1(Regularizer):
         res=0.
         for index,param in enumerate(self.nodes_params):
             for (var_name,var) in self.net.layers[index].variables.iteritems():
-                with self.net.graph.as_default():
-                    tmp=param*tf.abs(var)
-                    res=tf.add(res,tf.reduce_sum(tmp,keep_dims=False))
+                tmp=param*tf.abs(var)
+                res=tf.add(res,tf.reduce_sum(tmp,keep_dims=False))
         return res
 
     def __str__(self):
