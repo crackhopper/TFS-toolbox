@@ -19,12 +19,15 @@ class TestDataTool:
       assert len(dd)==2
 
 class TestDataset:
+  def test_empty(self):
+    d=Dataset()
+
   def test_dataset(self,data):
     assert data.train.shape[0]==70
 
   def test_cv(self,data):
     i=0
-    for train,test in data.train.train_test_for_cv(7):
+    for train,test in data.train.cross_validation_loop(7):
       i=i+1
       assert train.shape[0]==60
       assert test.shape[0]==10
@@ -37,6 +40,15 @@ class TestDataset:
       assert x.shape[0]==10 and y.shape[0]==10
     assert data.train.epochs_completed==1
     assert (x[0] == first_data).all()
+
+  def test_one_hot(self,data):
+    lbls = data.train.labels.copy()
+    data.to_one_hot()
+    assert data.train.labels.ndim==2
+    data.to_raw_label()
+    assert data.train.labels.ndim==1
+    np.testing.assert_array_equal(lbls,data.train.labels)
+
 
   def test_cifar10(self,capsys):
     with capsys.disabled():
