@@ -92,3 +92,21 @@ class MakeRegression(SKData):
     self._test_percent = test_percent
     self._x = X
     self._y = y
+
+class SKDataNoTest(Dataset):
+  def __init__(self,**kwargs):
+    self.setup(**kwargs)
+    super(SKDataNoTest,self).__init__(None)
+
+  def setup(self):
+    raise NotImplementedError()
+
+  def load_train_test(self):
+    return self._x,self._y,self._x.copy(),self._y.copy()
+
+class Iris(SKDataNoTest):
+  def setup(self):
+    iris = skdata.load_iris()
+    self._x = iris.data
+    self._y = iris.target
+
