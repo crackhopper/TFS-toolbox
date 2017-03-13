@@ -3,6 +3,8 @@ import numpy as np
 from tfs.core.layer import func_table,Layer
 from tfs.core.initializer import DefaultInit,InitType,Initializer
 from tfs.core.util import run_once_for_each_obj
+from tfs.core.loss import Loss,CategoricalCrossentropy,DefaultLoss
+from tfs.core.regularizers import Regularizer,L1,DefaultRegularizer
 from tensorflow.python.util.deprecation import deprecated
 import pickle
 import new
@@ -128,11 +130,19 @@ class Network(object):
     self._struct = NetStructure(self)
     self._in = None
     self._out = None
+    self._true_out=None
     self._graph = tf.Graph()
     with self.graph.as_default():
       self._sess = tf.Session()
     self.variables = {}
     self.initializer = DefaultInit(self)
+    self.Loss = DefaultLoss(self)
+    self.Regularizer =DefaultRegularizer(self)
+
+    self._loss=None
+    self._regulization=None
+    self._objective=None
+
     self.num_gpu = 0
 
   @staticmethod
@@ -192,6 +202,10 @@ class Network(object):
     return self._out
 
   @property
+  def true_output(self):
+    return self._true_out
+
+  @property
   def sess(self):
     return self._sess
 
@@ -244,12 +258,30 @@ class Network(object):
       self._out = tmp
     else:
       self._out[idx] = tmp
-
+    output_shape=self._out.get_shape().as_list()
+    output_dtype=self._out.dtype
+    with self.graph.as_default():
+      self._true_out=tf.placeholder(dtype=output_dtype,shape=output_shape)
+      assert self._true_out.graph==self.graph
     return tmp
 
   def _initialize(self):
     # TODO: check if need initialize
     self.run_initor(self.initializer)
+
+  @with_graph
+  def _compute_loss(self):
+    if self.has_built():
+      self._loss =tf.reduce_mean(self.Loss.compute())+self.Regularizer.compute()
+    else:
+      raise RuntimeError("The network has not been build!\n")
+
+
+  @property
+  def loss(self):
+    if self._loss is None:
+      self._compute_loss()
+    return self._loss
 
   def _get_init_op(self,initor):
     t,initor = initor.init_table
