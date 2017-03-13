@@ -4,9 +4,10 @@ import numpy as np
 from tfs.models import LeNet
 from tfs.core.loss import Loss,CategoricalCrossentropy,DefaultLoss,BinaryCrossentripy,SquareError
 from tfs.network.base import CustomNetwork
-from tensorflow.examples.tutorials.mnist import input_data
 from tfs.core.regularizers import Regularizer,L1,L2
 
+# because i do this in the feat-loss-11 branch, maybe you should change that to use the function in tfs.dataset
+from tensorflow.examples.tutorials.mnist import input_data
 mnist=input_data.read_data_sets("~/.keras/datasets",one_hot=True)
 train_data=mnist.train
 X=train_data.images
