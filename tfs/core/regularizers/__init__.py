@@ -64,7 +64,7 @@ class L2(Regularizer):
         the given l1.
         """
         if self.nodes_params is None:
-            self.nodes_params=[self.param.l1 for i in range(len(self.net))]
+            self.nodes_params=[self.param.l2 for i in range(len(self.net))]
         res=0.
         for index,param in enumerate(self.nodes_params):
             for (var_name,var) in self.net.layers[index].variables.iteritems():

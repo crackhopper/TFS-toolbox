@@ -272,7 +272,7 @@ class Network(object):
   @with_graph
   def _compute_loss(self):
     if self.has_built():
-      self._loss = self.Loss.compute()+self.Regularizer.compute()
+      self._loss =tf.reduce_mean(self.Loss.compute())+self.Regularizer.compute()
     else:
       raise RuntimeError("The network has not been build!\n")
 

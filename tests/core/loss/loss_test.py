@@ -4,6 +4,13 @@ import numpy as np
 from tfs.models import LeNet
 from tfs.core.loss import Loss,CategoricalCrossentropy,DefaultLoss,BinaryCrossentripy,SquareError
 from tfs.network.base import CustomNetwork
+from tensorflow.examples.tutorials.mnist import input_data
+from tfs.core.regularizers import Regularizer,L1,L2
+
+mnist=input_data.read_data_sets("~/.keras/datasets",one_hot=True)
+train_data=mnist.train
+X=train_data.images
+Y=train_data.labels
 
 class TenoutNet(CustomNetwork):
   def setup(self):
@@ -56,23 +63,45 @@ class TestLoss:
         netobj=LeNet()
         netobj.build([100,28,28,1])
         assert netobj.true_output.get_shape().as_list()==netobj.output.get_shape().as_list()
-        assert netobj.loss.get_shape().as_list()==[100]
+        assert netobj.loss.get_shape().as_list()==[]
+        loss=netobj.loss.eval(session=netobj.sess,feed_dict= {netobj.input:X[:100].reshape((100,28,28,1)),netobj.true_output: Y[:100]})
+        with capsys.disabled():
+          print ""
+          print loss
+
         netobj=TenoutNet()
         netobj.build([100,28,28,1])
         assert netobj.true_output.get_shape().as_list()==netobj.output.get_shape().as_list()
-        assert netobj.loss.get_shape().as_list()==[100]
+        assert netobj.loss.get_shape().as_list()==[]
+        loss=netobj.loss.eval(session=netobj.sess,feed_dict= {netobj.input:X[:100].reshape((100,28,28,1)),netobj.true_output: Y[:100]})
+        with capsys.disabled():
+          print ""
+          print loss
+    def test_regulization(self,capsys):
+      netobj=LeNet()
+      netobj.Regularizer=L2(netobj,l2=0.2)
+      netobj.build([100,28,28,1])
+      loss=netobj.loss.eval(session=netobj.sess,feed_dict={netobj.input: X[:100].reshape((100,28,28,1)),netobj.true_output: Y[:100]})
+      with capsys.disabled():
+        print ""
+        print loss
 
     def test_binarycrossentropy(self,capsys):
         netobj=TwooutNetwithsoftmax()
         netobj.build([100,28,28,1])
         assert netobj.true_output.get_shape().as_list()==netobj.output.get_shape().as_list()
-        assert netobj.loss.get_shape().as_list()==[100]
+        assert netobj.loss.get_shape().as_list()==[]
+        # TODO: dataset that just have 2 class.
         netobj=TwooutNet()
         netobj.build([100,28,28,1])
         assert netobj.true_output.get_shape().as_list()==netobj.output.get_shape().as_list()
-        assert netobj.loss.get_shape().as_list()==[100]
+        assert netobj.loss.get_shape().as_list()==[]
     def test_squareerror(self,capsys):
         netobj=LeNet()
         netobj.Loss=SquareError(netobj)
         netobj.build([100,28,28,1])
         assert netobj.true_output.get_shape().as_list()==netobj.output.get_shape().as_list()
+        loss=netobj.loss.eval(session=netobj.sess,feed_dict={netobj.input:X[:100].reshape((100,28,28,1)),netobj.true_output:Y[:100]})
+        with capsys.disabled():
+          print ""
+          print loss
