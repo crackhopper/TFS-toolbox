@@ -76,7 +76,3 @@ class TestLoss:
         netobj.Loss=SquareError(netobj)
         netobj.build([100,28,28,1])
         assert netobj.true_output.get_shape().as_list()==netobj.output.get_shape().as_list()
-        with capsys.disabled():
-            print ""
-            print "The shape of the loss:"
-            print netobj.loss.get_shape().as_list()

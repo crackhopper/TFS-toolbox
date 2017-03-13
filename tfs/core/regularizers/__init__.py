@@ -75,8 +75,14 @@ class L2(Regularizer):
     def __str__(self):
         return ""
 
-def DefaultRegularizer(netobj):
-    return L1(netobj,l1=0.01,nodes_params=None)
+class DefaultRegularizer(Regularizer):
+    def __init__(self,netobj):
+        Regularizer.__init__(self,netobj)
+    def compute(self):
+        return tf.constant(0.)
+    def __str__(self):
+        return ""
+
 
 
 

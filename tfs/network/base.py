@@ -272,29 +272,16 @@ class Network(object):
   @with_graph
   def _compute_loss(self):
     if self.has_built():
-      self._loss = self.Loss.compute()
+      self._loss = self.Loss.compute()+self.Regularizer.compute()
     else:
       raise RuntimeError("The network has not been build!\n")
 
-  @with_graph
-  def _compute_regulization(self):
-    self._regulization = self.Regularizer.compute()
 
   @property
   def loss(self):
     if self._loss is None:
       self._compute_loss()
     return self._loss
-
-  @property
-  def regulization(self):
-    if self._regulization is None:
-      self._compute_regulization()
-    return self._regulization
-
-  @property
-  def objective(self):
-    return self.loss+self.regulization
 
   def _get_init_op(self,initor):
     t,initor = initor.init_table
