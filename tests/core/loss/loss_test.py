@@ -6,11 +6,10 @@ from tfs.core.loss import Loss,CategoricalCrossentropy,DefaultLoss,BinaryCrossen
 from tfs.network.base import CustomNetwork
 from tfs.core.regularizers import Regularizer,L1,L2
 
-# because i do this in the feat-loss-11 branch, maybe you should change that to use the function in tfs.dataset
-from tensorflow.examples.tutorials.mnist import input_data
-mnist=input_data.read_data_sets("~/.keras/datasets",one_hot=True)
+from tfs.dataset import Mnist
+mnist=Mnist().to_one_hot()
 train_data=mnist.train
-X=train_data.images
+X=train_data.data
 Y=train_data.labels
 
 class TenoutNet(CustomNetwork):
