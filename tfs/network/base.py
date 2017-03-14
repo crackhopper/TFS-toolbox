@@ -1,14 +1,19 @@
 import tensorflow as tf
 import numpy as np
 from tfs.core.layer import func_table,Layer
-from tfs.core.initializer import DefaultInit,InitType,Initializer
 from tfs.core.util import run_once_for_each_obj
-from tfs.core.loss import Loss,CategoricalCrossentropy,DefaultLoss
-from tfs.core.regularizers import Regularizer,L1,DefaultRegularizer
+
+from tfs.core.initializer import DefaultInit
+from tfs.core.loss import DefaultLoss
+from tfs.core.regularizers import DefaultRegularizer
+from tfs.core.monitor import DefaultMonitor
+from tfs.core.optimizer import DefaultOptimizer
+
 from tensorflow.python.util.deprecation import deprecated
 import pickle
 import new
 from tensorflow.python.client import device_lib
+from sklearn import metrics
 
 # for supporting multi-gpu:
 # https://github.com/tensorflow/tensorflow/blob/r0.7/tensorflow/models/image/cifar10/cifar10_multi_gpu_train.py#L174
@@ -105,12 +110,12 @@ class NetStructure(object):
   def save(self,filename):
     f=open(filename,'wb')
     nodes = [n.copy_to(None) for n in self.nodes]
-    pickle.dump([nodes,self.in_shape],f)
+    pickle.dump([nodes,self.in_shape,self.net.loss_input_layer_name],f)
     f.close()
 
   def load(self,filename):
     f=open(filename,'rb')
-    self.nodes,in_shape = pickle.load(f)
+    self.nodes,in_shape,self.net.loss_input_layer_name = pickle.load(f)
     if in_shape:
       self.net.build(in_shape)
     f.close()
@@ -127,23 +132,48 @@ def with_graph(f):
 
 class Network(object):
   def __init__(self):
+    self._init_graph_sess()
     self._struct = NetStructure(self)
+
+    self._true_out=None 
+
     self._in = None
     self._out = None
-    self._true_out=None
+    self._loss=None
+
+    self.variables = {}
+    self.initializer = DefaultInit(self)
+    self.losser = DefaultLoss(self)
+    self.regularizer =DefaultRegularizer(self)
+    self.monitor = DefaultMonitor(self)
+    self._optimizer = DefaultOptimizer(self)
+
+    # this must be set when define a network
+    self.loss_input_layer_name = None
+
+    self._regulization=None
+    self.grads = None
+    self._train_op = None
+
+    self.num_gpu = 0
+    self.i_step = 0
+    self.n_epoch = 0
+    self._dtype = None
+
+  def _init_graph_sess(self):
     self._graph = tf.Graph()
     with self.graph.as_default():
       self._sess = tf.Session()
-    self.variables = {}
-    self.initializer = DefaultInit(self)
-    self.Loss = DefaultLoss(self)
-    self.Regularizer =DefaultRegularizer(self)
 
-    self._loss=None
-    self._regulization=None
-    self._objective=None
+  @property
+  def optimizer(self):
+    return self._optimizer
 
-    self.num_gpu = 0
+  @optimizer.setter
+  def optimizer(self,opt):
+    self.grads=None
+    self._optimizer=opt
+
 
   @staticmethod
   def available_devices():
@@ -213,26 +243,8 @@ class Network(object):
     if self.num_gpu and self._in is None and self._out is None:
       self._in = [None]*self.num_gpu
       self._out = [None]*self.num_gpu
-
-  @with_graph
-  @run_once_for_each_obj
-  def build(self,input_shape,dtype=tf.float32):
-    Layer.reset_counter()
-    """Build the computational graph
-    inTensor: the network input tensor.
-    """
-    if not self.num_gpu:
-      self._build(input_shape,dtype)
-    else:
-      for i in range(self.num_gpu):
-        with tf.device('/gpu:%d' % i):
-          with tf.name_scope('%s_%d' % ('GPU', i)) as scope:
-            self._build(input_shape,dtype,i)
-            tf.get_variable_scope().reuse_variables()
-
-    self.build_variables_table()
-    self._initialize()
-    return self.output
+      self._true_out = [None]*self.num_gpu
+      self._loss = [None]*self.num_gpu
 
   def tf_graph_str(self):
     info=[]
@@ -243,6 +255,64 @@ class Network(object):
       info.append(s)
     return '\n'.join(info)
 
+  @with_graph
+  @run_once_for_each_obj
+  def build(self,input_shape,dtype=tf.float32):
+    self._dtype = dtype
+    Layer.reset_counter()
+    """Build the computational graph
+    inTensor: the network input tensor.
+    """
+    if not self.num_gpu:
+      self._build(input_shape,dtype)
+    else:
+      tower_grads = []
+      for i in range(self.num_gpu):
+        with tf.device('/gpu:%d' % i):
+          with tf.name_scope('%s_%d' % ('GPU', i)) as scope:
+            self._build(input_shape,dtype,i)
+            tf.get_variable_scope().reuse_variables()
+            _loss = self.loss[i]
+            tower_grads.append(_grad)
+
+    self.build_variables_table()
+    self._initialize()
+    self.compute_gradients()
+    return self.output
+
+  def compute_gradients(self):
+    if self.loss is None:
+      return
+    if not self.num_gpu:
+      self.grads = self.optimizer.compute_gradients(self.loss,self.variables.values())
+    else:
+      tower_grads = []
+      for i in range(self.num_gpu):
+        with tf.device('/gpu:%d' % i):
+          with tf.name_scope('%s_%d' % ('GPU', i)) as scope:
+            tf.get_variable_scope().reuse_variables()
+            _loss = self.loss[i]
+            _grad = self.optimizer.compute_gradients(_loss,self.variables.values())
+            tower_grads.append(_grad)
+      self.grads = self.average_gradients(tower_grads)
+
+  def average_gradients(self,tower_grads):
+    average_grads = []
+    for grad_and_vars in zip(*tower_grads):
+      # Note that each grad_and_vars looks like the following:
+      #   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
+      grads = []
+      for g, _ in grad_and_vars:
+        expanded_g = tf.expand_dims(g, 0)
+        grads.append(expanded_g)
+      grad = tf.concat(axis=0, values=grads)
+      grad = tf.reduce_mean(grad, 0)
+      v = grad_and_vars[0][1]
+      grad_and_var = (grad, v)
+      average_grads.append(grad_and_var)
+    return average_grads
+
+  # this function is called only in build() under current graph.
   def _build(self,input_shape,dtype,idx=None):
     self._init_in_out_size()
     tmp = tf.placeholder(dtype,input_shape)
@@ -256,52 +326,30 @@ class Network(object):
 
     if idx is None:
       self._out = tmp
+      output_shape=self._out.get_shape().as_list()
+      output_dtype=self._out.dtype
+      self._true_out=tf.placeholder(dtype=output_dtype,shape=output_shape)
+      self._loss = self._compute_loss(idx)
     else:
       self._out[idx] = tmp
-    output_shape=self._out.get_shape().as_list()
-    output_dtype=self._out.dtype
-    with self.graph.as_default():
-      self._true_out=tf.placeholder(dtype=output_dtype,shape=output_shape)
-      assert self._true_out.graph==self.graph
-    return tmp
+      output_shape=self._out[idx].get_shape().as_list()
+      output_dtype=self._out[idx].dtype
+      self._true_out[i]=tf.placeholder(dtype=output_dtype,shape=output_shape)
+      self._loss[idx] = self._compute_loss(idx)
+    return self
 
   def _initialize(self):
-    # TODO: check if need initialize
     self.run_initor(self.initializer)
 
-  @with_graph
-  def _compute_loss(self):
-    if self.has_built():
-      self._loss =tf.reduce_mean(self.Loss.compute())+self.Regularizer.compute()
-    else:
-      raise RuntimeError("The network has not been build!\n")
-
+  def _compute_loss(self,idx):
+    loss =  self.losser.compute(idx)
+    if loss is None:
+      return loss
+    return loss + self.regularizer.compute()
 
   @property
   def loss(self):
-    if self._loss is None:
-      self._compute_loss()
     return self._loss
-
-  def _get_init_op(self,initor):
-    t,initor = initor.init_table
-    if t == InitType.values:
-      return self._get_init_op_by_val(initor)
-    elif t == InitType.ops:
-      return self._get_init_op_by_ops(initor)
-    else:
-      assert isinstance(initor,tf.Operation)
-      return initor
-
-
-  def _get_init_op_by_val(self,tbl):
-    return self._get_init_op_by_ops({
-      n:tf.assign(self.variables[n],val)
-      for n,val in tbl.items()
-    })
-
-  def _get_init_op_by_ops(self,initor):
-    return tf.group(*initor.values())
 
   def build_variables_table(self):
     for l in self.net_def:
@@ -315,12 +363,80 @@ class Network(object):
         return True
     return False
 
+  def fit(self,dataset,batch_size,n_epoch,
+          shuffle_epoch=True,max_step=10000000):
+    train_set = dataset.train
+    test_set = dataset.test
+    train_set.before_iter()
+    self.i_step = 0
+    self.n_epoch = 0
+    while True:
+      self.i_step += 1
+      self.n_epoch = train_set.epochs_completed
+      X,y = train_set.next_batch(batch_size,shuffle=shuffle_epoch)
+      self.step(X,y,self.i_step)
+      self.monitor.status(train_set,test_set,self.i_step,self.n_epoch)
+      if self.n_epoch>=n_epoch:
+        break
+      if self.i_step >= max_step:
+        break
+    return self
+
+  @property
+  def train_op(self):
+    if self._train_op is None:
+      self._train_op = self._get_train_op()
+    return self._train_op
+
+  @with_graph
+  def _get_train_op(self,step=None):
+    if self.loss is None:
+      return None
+    if self.grads is None:
+      self.compute_gradients()
+    op = self.optimizer.apply_gradients(self.grads,step)
+    # initialize the uninitalized variable (the optimizer would introduce
+    # uninitalized variable)
+    vars = self.optimizer.variables
+    self.run(tf.initialize_variables(vars.values()))
+    return op
+
+  def step(self,X,y,step):
+    self.run(self.train_op,feed_dict={self.input:X,self.true_output:y})
+
+  def predict(self,X):
+    if self.num_gpu==0:
+      _in = self.input
+      _out = self.output
+    else:
+      _in = self.input[0]
+      _out = self.output[0]
+    return self.run(_out,feed_dict={_in:X})
+
+  def score(self,datasubset):
+    y_pred = self.predict(datasubset.data)
+    y_pred = np.argmax(y_pred,1)
+    y_true = datasubset.labels
+    y_true = np.argmax(y_true,1)
+    return metrics.accuracy_score(y_true,y_pred)
+
+  def measure_loss(self,X,y):
+    if self.num_gpu==0:
+      _in = self.input
+      _true_out = self.true_output
+      _loss = self.loss
+    else:
+      _in = self.input[0]
+      _true_out = self.true_output[0]
+      _loss = self.loss[0]
+
+    return self.run(_loss,feed_dict={_in:X,_true_out:y})
+
   def run(self,eval_list,feed_dict=None):
     return self.sess.run(eval_list, feed_dict=feed_dict)
 
   def run_initor(self,initor):
-    assert isinstance(initor,Initializer)
-    op = self._get_init_op(initor)
+    op = initor.compute()
     return self.sess.run(op)
 
   def save(self,filename):
@@ -336,12 +452,14 @@ class Network(object):
     self.net_def.save(filename+'.def')
 
   def load(self,filename):
+    self._init_graph_sess()
     self.load_def(filename)
     f=open(filename+'.model','rb')
     data_dict=pickle.load(f)
     f.close()
     if self.has_built():
-      op = self._get_init_op_by_val(data_dict)
+      with self._graph.as_default():
+        op = self.initializer.op_by_value_table(data_dict)
       self.run(op)
 
   def load_def(self,filename):
@@ -350,11 +468,28 @@ class Network(object):
   @property
   def in_shape(self):
     if self._in is not None:
-      return self._in.get_shape().as_list()
+      if self.num_gpu==0:
+        return self._in.get_shape().as_list()
+      else:
+        return self._in[0].get_shape().as_list()
+    return None
+
+  @property
+  def dtype(self):
+    return self._dtype
+
+  @property
+  def out_shape(self):
+    if self._out:
+      if self.num_gpu==0:
+        return self._out.get_shape().as_list()
+      else:
+        return self._out[0].get_shape().as_list()
     return None
 
   def copy(self):
     obj = Network()
+    obj.loss_input_layer_name = self.loss_input_layer_name
     obj.setup_with_def(self.net_def,self.in_shape)
     return obj
 

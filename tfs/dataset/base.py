@@ -24,9 +24,8 @@ class DataSubset(object):
 
     self._data = data
     self._labels = labels
-    self._epochs_completed = 0
-    self._index_in_epoch = 0
     self._in_cv = False
+    self.before_iter()
 
   def cross_validation_loop(self,n_fold):
     """return a iterator
@@ -97,6 +96,10 @@ class DataSubset(object):
     self.data = self.data[perm]
     self.labels = self.labels[perm]
 
+  def before_iter(self):
+    self._epochs_completed=0
+    self._index_in_epoch=0
+
   def next_batch(self, batch_size, shuffle=True):
     """Return the next `batch_size` examples from this data set."""
     assert batch_size < self.num_examples
@@ -114,11 +117,13 @@ class DataSubset(object):
       end = self._index_in_epoch
       data_new_part = self._data[start:end]
       labels_new_part = self._labels[start:end]
-      return np.concatenate((data_rest_part, data_new_part), axis=0) , np.concatenate((labels_rest_part, labels_new_part), axis=0)
+      self.current_batch = (np.concatenate((data_rest_part, data_new_part), axis=0) , np.concatenate((labels_rest_part, labels_new_part), axis=0))
+      return self.current_batch
     else:
       self._index_in_epoch += batch_size
       end = self._index_in_epoch
-      return self._data[start:end], self._labels[start:end]
+      self.current_batch = (self._data[start:end], self._labels[start:end])
+      return self.current_batch
 
 # must import here, because LabelBinarizer need DataSubset
 from tfs.data_processor import LabelBinarizer

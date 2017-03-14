@@ -17,3 +17,5 @@ class CaffeNet(CustomNetwork):
      .fc(4096, name='fc7')
      .fc(1000, activation=False, name='fc8')
      .softmax(name='prob'))
+    self.loss_input_layer_name = 'fc8'
+

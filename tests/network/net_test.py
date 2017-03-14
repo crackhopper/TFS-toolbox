@@ -9,7 +9,8 @@ class MyNet(CustomNetwork):
     self.default_in_shape=[1,10,10,2]
     (self.layers
      .conv2d([3,3],4,[1,1],group=2)
-     .maxpool([2,2],[2,2]))
+     .maxpool([2,2],[2,2],name='out'))
+    self.loss_input_layer_name = 'out'
 
 @pytest.fixture
 def n():
