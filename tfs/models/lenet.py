@@ -14,3 +14,4 @@ class LeNet(CustomNetwork):
      .fc(10, activation=None,name='ip2')
      .softmax(name='prob')
     )
+    self.loss_input_layer_name = 'ip2'

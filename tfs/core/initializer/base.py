@@ -85,6 +85,29 @@ class Initializer(object):
     """
     raise NotImplementedError("Should be implemented by subclass")
 
+
+  def compute(self):
+    t,initor = self.init_table
+    if t == InitType.values:
+      return self._get_init_op_by_val(initor)
+    elif t == InitType.ops:
+      return self._get_init_op_by_ops(initor)
+    else:
+      raise ValueError("not support initor type")
+
+  def op_by_value_table(self,tbl):
+    return self._get_init_op_by_val(tbl)
+
+  def _get_init_op_by_val(self,tbl):
+    return self._get_init_op_by_ops({
+      n:tf.assign(self.net.variables[n],val)
+      for n,val in tbl.items()
+    })
+
+  def _get_init_op_by_ops(self,initor):
+    return tf.group(*initor.values())
+
+
 # subclass from the following classes:
 class DefaultValueInit(Initializer):
   ret_type = InitType.values

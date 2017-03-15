@@ -2,7 +2,7 @@ import pytest
 import tensorflow as tf
 import numpy as np
 from tfs.models import LeNet
-from tfs.core.loss import Loss,CategoricalCrossentropy,DefaultLoss,BinaryCrossentripy,SquareError
+from tfs.core.loss import Loss,DefaultLoss,CrossEntropy,SquareError
 from tfs.network.base import CustomNetwork
 from tfs.core.regularizers import Regularizer,L1,L2
 
@@ -26,6 +26,7 @@ class TenoutNet(CustomNetwork):
      .fc(500,name='ip1')
      .fc(10, activation=None,name='ip2')
     )
+    self.loss_input_layer_name='ip2'
 
 class TwooutNet(CustomNetwork):
   def setup(self):
@@ -41,6 +42,8 @@ class TwooutNet(CustomNetwork):
      .fc(500,name='ip1')
      .fc(2, activation=None,name='ip2')
     )
+    self.loss_input_layer_name='ip2'
+
 class TwooutNetwithsoftmax(CustomNetwork):
   def setup(self):
     """http://ethereon.github.io/netscope/#/gist/87a0a390cff3332b476a
@@ -56,6 +59,7 @@ class TwooutNetwithsoftmax(CustomNetwork):
      .fc(2, activation=None,name='ip2')
      .softmax(name='prob')
     )
+    self.loss_input_layer_name='ip2'
 
 
 class TestLoss:
