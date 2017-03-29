@@ -120,28 +120,12 @@ class Layer(object):
     obj.net = to_net
     return obj
 
+  @property
+  def print_name(self):
+    return '%s(%s)'%(self.name,easyname_dict[type(self).__name__])
+
   def __str__(self):
     """
     The info of this layer
     """
-    father_before   ="=={:15}==={:8}=".format(15*"=",8*"=")
-    father_attribute="| {:<15} | {:<8} ".format("Name","Type")
-    father_value    ="| {:<15} | {:<8} ".format(self.param.name,easyname_dict[type(self).__name__])
-    # TODO: add compute_param(self) to the base class ?
-
-    for key in self.param.__dict__.keys():
-      if key!='name':
-        if key!="activation":
-          father_before  +="=={:<8}=".format("="*8)
-          father_attribute+="| {:<8} ".format(key)
-          father_value    +="| {:<8} ".format(self.param.__dict__[key])
-        else:
-          if  self.param.__dict__[key]:
-            father_before  +="=={:<8}=".format("="*8)
-            father_attribute+="| {:<8} ".format('activate')
-            father_value    +="| {:<8} ".format(self.param.__dict__[key].func_name)
-          else:
-            father_before  +="=={:<10}=".format("="*10)
-            father_attribute+="| {:<10} ".format(key)
-            father_value    +="| {:<10} ".format(self.param.__dict__[key])
-    return father_before+"|\n"+father_attribute+"|\n"+father_value+'|'
+    return '%s(%s)'%(type(self).__name__,self.param)

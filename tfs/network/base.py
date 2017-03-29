@@ -145,7 +145,8 @@ class Network(object):
     self.initializer = DefaultInit(self)
     self.losser = DefaultLoss(self)
     self.regularizer =DefaultRegularizer(self)
-    self.monitor = DefaultMonitor(self)
+    self.monitor = {}
+    self.monitor['default']=DefaultMonitor(self)
     self._optimizer = DefaultOptimizer(self)
 
     # this must be set when define a network
@@ -174,6 +175,8 @@ class Network(object):
     self.grads=None
     self._optimizer=opt
 
+  def add_monitor(self,name,monitor):
+    self.monitor[name] = monitor
 
   @staticmethod
   def available_devices():
@@ -186,6 +189,10 @@ class Network(object):
   @property
   @deprecated("2017-05-01", "Use `net_def` instead.")
   def layers(self):
+    return self._struct
+
+  @property
+  def nodes(self):
     return self._struct
 
   @property
@@ -321,7 +328,7 @@ class Network(object):
     else:
       self._in[idx] = tmp
 
-    for l in self.layers:
+    for l in self.net_def:
       tmp = l.build(tmp,idx)
 
     if idx is None:
@@ -365,6 +372,8 @@ class Network(object):
 
   def fit(self,dataset,batch_size,n_epoch,
           shuffle_epoch=True,max_step=10000000):
+    if dataset.train.labels.shape[-1] != self.out_shape[-1]:
+      dataset = dataset.to_one_hot()
     train_set = dataset.train
     test_set = dataset.test
     train_set.before_iter()
@@ -375,7 +384,8 @@ class Network(object):
       self.n_epoch = train_set.epochs_completed
       X,y = train_set.next_batch(batch_size,shuffle=shuffle_epoch)
       self.step(X,y,self.i_step)
-      self.monitor.status(train_set,test_set,self.i_step,self.n_epoch)
+      for v in self.monitor.values():
+        v.status(train_set,test_set,self.i_step,self.n_epoch)
       if self.n_epoch>=n_epoch:
         break
       if self.i_step >= max_step:
@@ -398,7 +408,7 @@ class Network(object):
     # initialize the uninitalized variable (the optimizer would introduce
     # uninitalized variable)
     vars = self.optimizer.variables
-    self.run(tf.initialize_variables(vars.values()))
+    self.run(tf.variables_initializer(vars.values()))
     return op
 
   def step(self,X,y,step):
@@ -480,7 +490,7 @@ class Network(object):
 
   @property
   def out_shape(self):
-    if self._out:
+    if self._out is not None:
       if self.num_gpu==0:
         return self._out.get_shape().as_list()
       else:
@@ -494,11 +504,15 @@ class Network(object):
     return obj
 
   def __str__(self):
-    # TODO:
-    result=''
-    for (i,layer) in enumerate(self.layers):
-      result+="Layer {} :\n".format(i)+str(layer)+"\n"
-    return result
+    return '\n'.join([str(l) for l in self.nodes])
+
+  def print_shape(self):
+    for l in self.nodes:
+      print '%-20s  %20s %s %-20s'%(
+        l.print_name,
+        l.input.get_shape(),
+        '->',
+        l.output.get_shape())
 
   def subnet(self,begin_index,end_index):
     obj = Network()

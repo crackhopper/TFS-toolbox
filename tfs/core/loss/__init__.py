@@ -20,15 +20,19 @@ class Loss(object):
         argnames,_,_,_ = inspect.getargspec(type(self).__init__)
         self.param = Param(**{k:v for k,v in zip(argnames[2:],args)})
 
+    @property
+    def in_name(self):
+        return self.net.loss_input_layer_name
+
     def compute(self,idx=None):
-        in_name = self.net.loss_input_layer_name
+        in_name = self.in_name
         if len(self.net) is 0:
             return None
         if in_name is None:
             raise KeyError("please define loss_input_layer_name")
         else:
             if in_name not in self.net.net_def.names():
-                raise KeyError("Loss input layer (%s) doesnot exist"%self.input_node_name)
+                raise KeyError("Loss input layer (%s) doesnot exist"%in_name)
             x1_node = self.net.node_by_name(in_name)
         if idx is None:
             x1 = x1_node.output
@@ -43,11 +47,12 @@ class Loss(object):
         raise NotImplementedError
 
     def __str__(self):
-        ""
+        info = type(self).__name__+' (%s)'%self.in_name
+        pstr = str(self.param)
+        return info+'\n-----param-----\n'+pstr+'----------------'
 
 
 class CrossEntropy(Loss):
-    input_node_name = 'logit'
     def __init__(self,netobj):
         Loss.__init__(self,netobj)
 
@@ -70,9 +75,5 @@ class SquareError(Loss):
             axis=tuple(range(1,x1.shape.ndims))
         norm2=tf.norm(x2-x1,ord='euclidean',axis=axis)
         return tf.square(norm2)
-    def __str__(self):
-        return ""
 
-class DefaultLoss(CrossEntropy):
-    input_node_name = None
-
+DefaultLoss=CrossEntropy
