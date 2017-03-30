@@ -95,3 +95,6 @@ dist/
 MANIFEST
 bak/
 testplot.png
+
+*.model
+*.modeldef

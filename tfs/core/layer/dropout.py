@@ -5,14 +5,16 @@ from base import Layer
 
 class Dropout(Layer):
   def __init__(self,
+               net,
                keep_prob,
-               name=None
+               name=None,
+               print_names=['keep_prob']
   ):
-    Layer._init(
-      self,
-      keep_prob,
-      name
-    )
+    vtable = locals()
+    del vtable['self']
+    del vtable['net']
+    super(Dropout,self).__init__(net,**vtable)
+
   def _build(self):
     inTensor = self._in
     output = tf.nn.dropout(inTensor, self.param.keep_prob,

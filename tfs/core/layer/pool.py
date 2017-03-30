@@ -5,18 +5,18 @@ from base import Layer
 
 class MaxPool(Layer):
   def __init__(self,
+               net,
                ksize,
                strides,
                padding='SAME',
-               name=None
+               name=None,
+               print_names=['ksize','strides']
   ):
-    Layer._init(
-      self,
-      ksize,
-      strides,
-      padding,
-      name
-    )
+    vtable = locals()
+    del vtable['self']
+    del vtable['net']
+    super(MaxPool,self).__init__(net,**vtable)
+
   def _build(self):
     inTensor = self._in
     kx,ky = self.param.ksize
@@ -45,18 +45,18 @@ class MaxPool(Layer):
 
 class AvgPool(Layer):
   def __init__(self,
+               net,
                ksize,
                strides,
                padding='SAME',
-               name=None
+               name=None,
+               print_names=['ksize','strides']
   ):
-    Layer.__init__(
-      self,
-      ksize,
-      strides,
-      padding,
-      name
-    )
+    vtable = locals()
+    del vtable['self']
+    del vtable['net']
+    super(MaxPool,self).__init__(net,**vtable)
+
   def build(self,inTensor):
     self._in = inTensor
     kx,ky = self.param.ksize

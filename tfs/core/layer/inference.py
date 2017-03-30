@@ -5,12 +5,15 @@ from base import Layer
 
 class Softmax(Layer):
   def __init__(self,
-               name=None
+               net,
+               name=None,
+               print_names=[]
   ):
-    Layer._init(
-      self,
-      name
-    )
+    vtable = locals()
+    del vtable['self']
+    del vtable['net']
+    super(Softmax,self).__init__(net,**vtable)
+
   def _build(self):
     inTensor = self._in
     output = tf.nn.softmax(inTensor,name=self.name)

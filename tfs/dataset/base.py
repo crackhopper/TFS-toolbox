@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 import data_tool as dtool
 from data_tool import *
-import tfs
+import tfs.g
 import os
 
 class DataSubset(object):
@@ -157,7 +157,7 @@ class Dataset(object):
     if data_dir:
       self.data_dir = data_dir
     else:
-      self.data_dir = tfs.config.dataset.getdir(self)
+      self.data_dir = tfs.g.config.dataset.getdir(self)
     self.prepare()
     _trainX, _trainY, _testX, _testY = self.load_train_test()
     self._train = DataSubset(_trainX,_trainY)
@@ -217,7 +217,7 @@ class Dataset(object):
 
   @data_dir.setter
   def data_dir(self,_dir):
-    tfs.config.dataset.setdir(self,_dir)
+    tfs.g.config.dataset.setdir(self,_dir)
     self._data_dir = _dir
 
 

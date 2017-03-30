@@ -5,6 +5,7 @@ import tfs.core.initializer.init_func as init
 
 class Conv2d(Layer):
   def __init__(self,
+               net,
                ksize,
                knum,
                strides,
@@ -12,19 +13,13 @@ class Conv2d(Layer):
                padding='SAME',
                group=1,
                biased=True,
-               name=None
+               name=None,
+               print_names=['knum','ksize','strides','padding','activation']
   ):
-    Layer._init(
-      self,
-      ksize,
-      knum,
-      strides,
-      activation,
-      padding,
-      group,
-      biased,
-      name
-    )
+    vtable = locals()
+    del vtable['self']
+    del vtable['net']
+    super(Conv2d,self).__init__(net,**vtable)
 
   def _build(self):
     inTensor = self._in

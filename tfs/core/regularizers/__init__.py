@@ -1,16 +1,15 @@
 import tensorflow as tf
 import numpy as np
 import inspect
-from tfs.core.elem import Param
+from tfs.core.elem import Param,Component
 from tfs.core.layer.inference import Softmax
 
 
 
-class Regularizer(object):
-    def __init__(self,netobj,*args):
-        self.net = netobj
-        argnames,_,_,_ = inspect.getargspec(type(self).__init__)
-        self.param = Param(**{k:v for k,v in zip(argnames[2:],args)})
+class Regularizer(Component):
+    def __init__(self,netobj,**kwargs):
+        super(Regularizer,self).__init__(netobj,**kwargs)
+
     def compute(self,index_nodes):
         raise NotImplementedError
     def __str__(self):
@@ -18,9 +17,13 @@ class Regularizer(object):
 
 
 class L1(Regularizer):
-    def __init__(self,netobj,l1=0.,nodes_params=None):
-        Regularizer.__init__(self,netobj,l1)
+    def __init__(self,net,l1=0.01,nodes_params=None,print_names=['l1','nodes_params']):
+        vs = locals()
+        del vs['net']
+        del vs['self']
+        super(L1,self).__init__(net,**vs)
         self.nodes_params=nodes_params
+
     def compute(self):
         """
         param:
@@ -38,7 +41,7 @@ class L1(Regularizer):
             self.nodes_params=[self.param.l1 for i in range(len(self.net))]
         res=0.
         for index,param in enumerate(self.nodes_params):
-            for (var_name,var) in self.net.layers[index].variables.iteritems():
+            for (var_name,var) in self.net.nodes[index].variables.iteritems():
                 tmp=param*tf.abs(var)
                 res=tf.add(res,tf.reduce_sum(tmp,keep_dims=False))
         return res
@@ -47,9 +50,13 @@ class L1(Regularizer):
         return ""
 
 class L2(Regularizer):
-    def __init__(self,netobj,l2=0.,nodes_params=None):
-        Regularizer.__init__(self,netobj,l2)
+    def __init__(self,net,l2=0.01,nodes_params=None,print_names=['l2','nodes_params']):
+        vs = locals()
+        del vs['net']
+        del vs['self']
+        super(L2,self).__init__(net,**vs)
         self.nodes_params=nodes_params
+
     def compute(self):
         """
         param:
@@ -67,7 +74,7 @@ class L2(Regularizer):
             self.nodes_params=[self.param.l2 for i in range(len(self.net))]
         res=0.
         for index,param in enumerate(self.nodes_params):
-            for (var_name,var) in self.net.layers[index].variables.iteritems():
+            for (var_name,var) in self.net.nodes[index].variables.iteritems():
                 tmp=param*tf.square(var)
                 res=tf.add(res,tf.reduce_sum(tmp,keep_dims=False))
         return res
@@ -76,8 +83,6 @@ class L2(Regularizer):
         return ""
 
 class DefaultRegularizer(Regularizer):
-    def __init__(self,netobj):
-        Regularizer.__init__(self,netobj)
     def compute(self):
         return tf.constant(0.)
     def __str__(self):

@@ -4,10 +4,13 @@ import numpy as np
 import tfs.core.layer.ops as ops
 
 from tfs.core.layer.dropout import Dropout
+from tfs.network import Network
+net = Network()
 
 @pytest.fixture
 def l():
   l = Dropout(
+    net,
     keep_prob=1.0,
   )
   return l

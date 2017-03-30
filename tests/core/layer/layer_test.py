@@ -8,6 +8,8 @@ import numpy as np
 
 import tfs.core.layer.base as base
 import tfs.core.layer.ops as ops
+from tfs.network import Network
+net = Network()
 
 # test param
 Param = base.Param
@@ -31,22 +33,16 @@ class TestParam:
 
 # test Layer
 Layer = base.Layer
-Layer.reset_counter()
 @pytest.fixture
 def layer():
-  l= Layer(name='test')
+  l= Layer(net,name='test')
   return l
 
 class TestLayer:
   def test_init(self,layer):
-    Layer.reset_counter()
-    l = Layer()
-    assert l.name =='Layer_1'
+    l = Layer(net)
+    assert l.name =='Layer_2'
     assert layer.name=='test'
-
-  def test_unique_name(self,layer):
-    with pytest.raises(AssertionError):
-      layer.get_unique_name()
 
   def test_build(self,layer):
     _in = tf.constant(0)
@@ -64,9 +60,12 @@ class TestLayer:
     assert out == 'Layer doesn\'t define inverse op, ignore the layer\n'
 
   def test_copy_to(self,layer):
-    cp = layer.copy_to(None)
+    with pytest.raises(AssertionError):
+      cp = layer.copy_to(None)
+
+    cp = layer.copy_to(net)
     assert type(cp) is type(layer)
     assert cp.param.__dict__ == layer.param.__dict__
     assert not (cp.param.__dict__ is layer.param.__dict__)
-    assert cp.net == None
+    assert cp.net is net
 

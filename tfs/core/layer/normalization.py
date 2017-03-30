@@ -6,20 +6,19 @@ import tfs.core.initializer.init_func as init
 
 class LRN(Layer):
   def __init__(self,
+               net,
                radius,
                alpha,
                beta,
                bias=1.0,
-               name=None
+               name=None,
+               print_names=['radius','alpha','beta']
   ):
-    Layer._init(
-      self,
-      radius,
-      alpha,
-      beta,
-      bias,
-      name
-    )
+    vtable = locals()
+    del vtable['self']
+    del vtable['net']
+    super(LRN,self).__init__(net,**vtable)
+
   def _build(self):
     inTensor = self._in
     output = tf.nn.local_response_normalization(
@@ -33,16 +32,17 @@ class LRN(Layer):
 
 class BN(Layer):
   def __init__(self,
+               net,
                scale_offset=True,
                activation=ops.relu,
-               name=None
+               name=None,
+               print_names=[]
   ):
-    Layer._init(
-      self,
-      scale_offset,
-      activation,
-      name
-    )
+    vtable = locals()
+    del vtable['self']
+    del vtable['net']
+    super(BN,self).__init__(net,**vtable)
+
   def _build(self):
     inTensor = self._in
     input_shape = inTensor.get_shape()

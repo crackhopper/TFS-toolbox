@@ -1,17 +1,17 @@
-import tensorflow as tf
 import numpy as np
-from tfs.core.layer import func_table,Layer
 from tfs.core.util import run_once_for_each_obj
-
 from tfs.core.initializer import DefaultInit
 from tfs.core.loss import DefaultLoss
 from tfs.core.regularizers import DefaultRegularizer
 from tfs.core.monitor import DefaultMonitor
 from tfs.core.optimizer import DefaultOptimizer
-
-from tensorflow.python.util.deprecation import deprecated
+from tfs.core.layer import func_table,Layer
+from tfs.core.elem import Component
 import pickle
 import new
+
+import tensorflow as tf
+from tensorflow.python.util.deprecation import deprecated
 from tensorflow.python.client import device_lib
 from sklearn import metrics
 
@@ -19,107 +19,8 @@ from sklearn import metrics
 # https://github.com/tensorflow/tensorflow/blob/r0.7/tensorflow/models/image/cifar10/cifar10_multi_gpu_train.py#L174
 #
 # we use shared variables on CPU and model distributed on each GPU
-#
-#################### NetStructure
-def _layer_function(layerclass):
-  def func(self,*args,**kwargs):
-    layer = layerclass(*args,**kwargs)
-    self.append(layer)
-    return self
-  return func
 
-def _net_sturcture_meta(future_class_name, future_class_parents, future_class_attr):
-  for k in func_table:
-    future_class_attr[k]=_layer_function(func_table[k])
-  return type(future_class_name, future_class_parents, future_class_attr)
-
-class NetStructure(object):
-  __metaclass__ = _net_sturcture_meta
-  """This class is used for define a network structure by using layers.
-  """
-  def __init__(self,net,nodes=None):
-    nodes = nodes or []
-    self._net = net
-    self.nodes=nodes
-
-  @property
-  def in_shape(self):
-    return self.net.in_shape
-
-  def _adjust(self):
-    def _setnet(n):
-      n.net=self.net
-    map(_setnet, self._nodes)
-
-  @property
-  def net(self):
-    return self._net
-
-  @net.setter
-  def net(self,net):
-    self._net = net
-    self._adjust()
-
-  @property
-  def nodes(self):
-    return self._nodes
-
-  @nodes.setter
-  def nodes(self,nodes):
-    self._nodes = nodes
-    self._need_built = True
-    self._adjust()
-
-  def append(self,l):
-    self._need_built = True
-    l.net = self.net
-    self.nodes.append(l)
-
-  def __getitem__(self,i):
-    return self.nodes[i]
-
-  def copy_to(self,net):
-    res = NetStructure(net)
-    for l in self.nodes:
-      res.nodes.append(l.copy_to(net))
-    return res
-
-  def _built_lut(self):
-    if not self._need_built: return
-    self._lut = {}
-    self._lut2 = {}
-    for i,l in enumerate(self.nodes):
-      self._lut[l.name]=l
-      self._lut2[l.name]=i
-
-  def by_name(self,name):
-    self._built_lut()
-    return self._lut[name]
-
-  def find_index(self,l):
-    self._built_lut()
-    return self._lut2[l.name]
-
-  def names(self):
-    self._built_lut()
-    return self._lut.keys()
-
-  def __len__(self):
-    return len(self.nodes)
-
-  def save(self,filename):
-    f=open(filename,'wb')
-    nodes = [n.copy_to(None) for n in self.nodes]
-    pickle.dump([nodes,self.in_shape,self.net.loss_input_layer_name],f)
-    f.close()
-
-  def load(self,filename):
-    f=open(filename,'rb')
-    self.nodes,in_shape,self.net.loss_input_layer_name = pickle.load(f)
-    if in_shape:
-      self.net.build(in_shape)
-    f.close()
-
+from net_struct import NetStructure
 #################### Network
 # decorators
 def with_graph(f):
@@ -131,12 +32,12 @@ def with_graph(f):
   return with_graph_run
 
 class Network(object):
+  __hash__=object.__hash__
   def __init__(self):
     self._init_graph_sess()
     self._struct = NetStructure(self)
 
-    self._true_out=None 
-
+    self._true_out=None
     self._in = None
     self._out = None
     self._loss=None
@@ -160,6 +61,24 @@ class Network(object):
     self.i_step = 0
     self.n_epoch = 0
     self._dtype = None
+
+  def to_pickle(self):
+    return [
+      self.in_shape,
+      self.loss_input_layer_name,
+      self.optimizer.to_pickle(),
+      self.losser.to_pickle(),
+      self.regularizer.to_pickle()
+    ]
+
+  def restore(self,objs):
+    inshape = objs[0]
+    self.loss_input_layer_name = objs[1]
+    self.optimizer = Component.restore(objs[2],self)
+    self.losser = Component.restore(objs[3],self)
+    self.regularizer = Component.restore(objs[4],self)
+    if inshape:
+      self.build(inshape)
 
   def _init_graph_sess(self):
     self._graph = tf.Graph()
@@ -266,7 +185,6 @@ class Network(object):
   @run_once_for_each_obj
   def build(self,input_shape,dtype=tf.float32):
     self._dtype = dtype
-    Layer.reset_counter()
     """Build the computational graph
     inTensor: the network input tensor.
     """
@@ -459,7 +377,7 @@ class Network(object):
     f.close()
 
   def save_def(self,filename):
-    self.net_def.save(filename+'.def')
+    self.net_def.save(filename+'.modeldef')
 
   def load(self,filename):
     self._init_graph_sess()
@@ -473,7 +391,7 @@ class Network(object):
       self.run(op)
 
   def load_def(self,filename):
-    self.net_def.load(filename+'.def')
+    self.net_def.load(filename+'.modeldef')
 
   @property
   def in_shape(self):
@@ -523,7 +441,7 @@ class Network(object):
 class CustomNetwork(Network):
   """Automatically called setup and build when construct
   """
-  def __init__(self,in_shape=None):
+  def __init__(self):
     Network.__init__(self)
     self.default_in_shape = None
     self.setup()

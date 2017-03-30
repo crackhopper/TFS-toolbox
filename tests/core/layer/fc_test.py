@@ -4,10 +4,13 @@ import numpy as np
 import tfs.core.layer.ops as ops
 
 from tfs.core.layer.fc import FullyConnect
+from tfs.network import Network
+net = Network()
 
 @pytest.fixture
 def l():
   l = FullyConnect(
+    net,
     10,
     activation = ops.relu,
     name=None

@@ -3,7 +3,7 @@ from base import Dataset,DataSubset
 import data_tool as dtool
 import numpy as np
 import os
-import tfs
+import tfs.g
 import tarfile
 import gzip
 import shutil
@@ -47,7 +47,7 @@ class Online(Dataset):
   filelists=[]
   def prepare(self):
     if self.data_dir is None:
-      self.data_dir = tfs.config.dataset.base_dir+self.default_dir
+      self.data_dir = tfs.g.config.dataset.base_dir+self.default_dir
     if self.check_files():
       return
     self.maybe_download()
@@ -57,7 +57,7 @@ class Online(Dataset):
     return dtool.check_exist([os.path.join(self.data_dir,f) for f in self.filelists])
 
   def maybe_download(self):
-    download_dir = tfs.config.dataset.download_dir
+    download_dir = tfs.g.config.dataset.download_dir
     if not os.path.exists(download_dir):
       os.makedirs(download_dir)
     for f,link in self.urls.items():
@@ -81,7 +81,7 @@ class Online(Dataset):
 
   def extract(self):
     for f in self.urls:
-      filepath = os.path.join(tfs.config.dataset.download_dir,f)
+      filepath = os.path.join(tfs.g.config.dataset.download_dir,f)
       extractor = _get_extractor(filepath)
       extractor(filepath,self.data_dir)
 

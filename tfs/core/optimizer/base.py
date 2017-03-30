@@ -1,13 +1,11 @@
 import tensorflow as tf
 import numpy as np
 import inspect
-from tfs.core.elem import Param
+from tfs.core.elem import Param,Component
 
-class Optimizer(object):
-  def __init__(self,netobj,*args):
-    self.net = netobj
-    argnames,_,_,_ = inspect.getargspec(type(self).__init__)
-    self.param = Param(**{k:v for k,v in zip(argnames[2:],args)})
+class Optimizer(Component):
+  def __init__(self,net,**kwargs):
+    super(Optimizer,self).__init__(net,**kwargs)
     self._variables = None
 
   def __str__(self):
@@ -52,13 +50,19 @@ class Optimizer(object):
 
 
 class GradientDecentOptimizer(Optimizer):
-  def __init__(self,netobj,learning_rate=0.001):
-    Optimizer.__init__(self,netobj,learning_rate)
+  def __init__(self,net,learning_rate=0.001,print_names=['learning_rate']):
+    vs = locals()
+    del vs['net']
+    del vs['self']
+    super(GradientDecentOptimizer,self).__init__(net,**vs)
     self.opt = tf.train.GradientDescentOptimizer(learning_rate)
 
 class AdamOptimizer(Optimizer):
-  def __init__(self,netobj,learning_rate=0.001):
-    Optimizer.__init__(self,netobj,learning_rate)
+  def __init__(self,net,learning_rate=0.001,print_names=['learning_rate']):
+    vs = locals()
+    del vs['net']
+    del vs['self']
+    super(AdamOptimizer,self).__init__(net,**vs)
     self.opt = tf.train.AdamOptimizer(learning_rate)
 
   def _init_variable_table(self,grads_and_vars):

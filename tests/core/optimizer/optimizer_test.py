@@ -4,6 +4,7 @@ import numpy as np
 from tfs.models import LeNet
 
 from tfs.dataset import Mnist
+import tfs.g
 
 @pytest.fixture
 def data():
@@ -18,6 +19,7 @@ def net():
 
 class TestOptimizer:
   def test_fit(self,data,net,capsys):
-    with capsys.disabled():
-      net.monitor.print_step=1
-      net.fit(data,batch_size=300,n_epoch=1,max_step=20)
+    if tfs.g.config['test']['optimizer']:
+      with capsys.disabled():
+        net.monitor['default'].interval=1
+        net.fit(data,batch_size=300,n_epoch=1,max_step=20)

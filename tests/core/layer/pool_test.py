@@ -4,10 +4,13 @@ import numpy as np
 import tfs.core.layer.ops as ops
 
 from tfs.core.layer.pool import MaxPool,AvgPool
+from tfs.network import Network
+net = Network()
 
 @pytest.fixture
 def l():
   l = MaxPool(
+    net,
     ksize=[2,2],
     strides=[2,2],
     padding='SAME',

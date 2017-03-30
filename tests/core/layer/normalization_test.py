@@ -4,10 +4,13 @@ import numpy as np
 import tfs.core.layer.ops as ops
 
 from tfs.core.layer.normalization import LRN,BN
+from tfs.network import Network
+net = Network()
 
 @pytest.fixture
 def l():
   l = LRN(
+    net,
     radius=1,
     alpha=.1,
     beta=0.01,
@@ -24,6 +27,7 @@ class TestLRN:
 @pytest.fixture
 def l():
   l = BN(
+    net,
     scale_offset=True,
     activation=ops.relu,
   )

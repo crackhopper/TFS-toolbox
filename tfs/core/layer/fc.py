@@ -6,16 +6,16 @@ import tfs.core.initializer.init_func as init
 
 class FullyConnect(Layer):
   def __init__(self,
+               net,
                outdim,
                activation = ops.relu,
-               name=None
+               name=None,
+               print_names=['outdim','activation']
   ):
-    Layer._init(
-      self,
-      outdim,
-      activation,
-      name
-    )
+    vtable = locals()
+    del vtable['self']
+    del vtable['net']
+    super(FullyConnect,self).__init__(net,**vtable)
 
   def _build(self):
     inTensor = self._in

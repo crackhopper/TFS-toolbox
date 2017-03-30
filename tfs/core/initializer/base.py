@@ -4,17 +4,15 @@
 import tensorflow as tf
 import numpy as np
 import inspect
-from tfs.core.elem import Param
+from tfs.core.elem import Param,Component
 
 class InitType(object):
   values = 0
   ops = 1
 
-class Initializer(object):
-  def __init__(self,netobj,*args):
-    self.net = netobj
-    argnames,_,_,_ = inspect.getargspec(type(self).__init__)
-    self.param = Param(**{k:v for k,v in zip(argnames[2:],args)})
+class Initializer(Component):
+  def __init__(self,netobj,**kwargs):
+    super(Initializer,self).__init__(netobj,**kwargs)
     self._init_table=()
 
   def __str__(self):
