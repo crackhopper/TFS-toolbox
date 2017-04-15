@@ -427,7 +427,7 @@ class Network(object):
   def print_shape(self):
     for l in self.nodes:
       print '%-20s  %20s %s %-20s'%(
-        l.print_name,
+        l.name,
         l.input.get_shape(),
         '->',
         l.output.get_shape())
