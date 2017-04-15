@@ -341,6 +341,20 @@ class Network(object):
       _out = self.output[0]
     return self.run(_out,feed_dict={_in:X})
 
+  def eval_node(self,node,X):
+    _in = self.input
+    if isinstance(node,str):
+      _out = self.node_by_name(node).output
+    else:
+      _out = node.output
+    return self.run(_out,feed_dict={_in:X})
+
+  def function(self,input_tensors,output_tensors):
+    def _func(input_vals):
+      feed = {t:v in zip(input_vals,input_tensors)}
+      return self.run(output_tensors,feed_dict=feed)
+    return _func
+
   def score(self,datasubset):
     y_pred = self.predict(datasubset.data)
     y_pred = np.argmax(y_pred,1)
