@@ -4,10 +4,13 @@ import numpy as np
 import tfs.core.layer.ops as ops
 
 from tfs.core.layer.inference import Softmax
+from tfs.network import Network
+net = Network()
 
 @pytest.fixture
 def l():
   l = Softmax(
+    net
   )
   return l
 

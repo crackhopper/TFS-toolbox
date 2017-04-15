@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 import inspect
-from tfs.core.elem import Param
+from tfs.core.elem import Param,Component
 from tfs.core.layer.inference import Softmax
 
 
@@ -14,21 +14,23 @@ def _to_tensor(x, dtype):
         x = tf.cast(x, dtype)
     return x
 
-class Loss(object):
-    def __init__(self,netobj,*args):
-        self.net=netobj
-        argnames,_,_,_ = inspect.getargspec(type(self).__init__)
-        self.param = Param(**{k:v for k,v in zip(argnames[2:],args)})
+class Loss(Component):
+    def __init__(self,netobj,**kwargs):
+        super(Loss,self).__init__(netobj,**kwargs)
+
+    @property
+    def in_name(self):
+        return self.net.loss_input_layer_name
 
     def compute(self,idx=None):
-        in_name = self.net.loss_input_layer_name
+        in_name = self.in_name
         if len(self.net) is 0:
             return None
         if in_name is None:
             raise KeyError("please define loss_input_layer_name")
         else:
             if in_name not in self.net.net_def.names():
-                raise KeyError("Loss input layer (%s) doesnot exist"%self.input_node_name)
+                raise KeyError("Loss input layer (%s) doesnot exist"%in_name)
             x1_node = self.net.node_by_name(in_name)
         if idx is None:
             x1 = x1_node.output
@@ -43,12 +45,13 @@ class Loss(object):
         raise NotImplementedError
 
     def __str__(self):
-        ""
+        info = type(self).__name__+' (%s)'%self.in_name
+        pstr = str(self.param)
+        return info+'\n-----param-----\n'+pstr+'----------------'
 
 
 class CrossEntropy(Loss):
-    input_node_name = 'logit'
-    def __init__(self,netobj):
+    def __init__(self,netobj,print_names=[]):
         Loss.__init__(self,netobj)
 
     def _compute(self,x1,x2):
@@ -61,18 +64,11 @@ class CrossEntropy(Loss):
         return tf.reduce_mean(op(labels=x2,logits=x1))
 
 class SquareError(Loss):
-    def __init__(self,netobj):
+    def __init__(self,netobj,print_names=[]):
         Loss.__init__(self,netobj)
     def _compute(self,x1,x2):
-        if x1.shape.ndims==2:
-            axis=1
-        else:
-            axis=tuple(range(1,x1.shape.ndims))
-        norm2=tf.norm(x2-x1,ord='euclidean',axis=axis)
+        x = tf.reshape(x2-x1,[-1])
+        norm2=tf.norm(x,ord='euclidean')
         return tf.square(norm2)
-    def __str__(self):
-        return ""
 
-class DefaultLoss(CrossEntropy):
-    input_node_name = None
-
+DefaultLoss=CrossEntropy

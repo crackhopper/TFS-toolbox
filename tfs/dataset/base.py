@@ -1,8 +1,9 @@
 from __future__ import division
 import tensorflow as tf
 import numpy as np
+import data_tool as dtool
 from data_tool import *
-import tfs
+import tfs.g
 import os
 
 class DataSubset(object):
@@ -52,6 +53,30 @@ class DataSubset(object):
       val = DataSubset(teX,teY)
       yield train,val
     self._in_cv = False
+
+  def split(self,percents,axis=0):
+    """split dataset into several dataset:
+    percent : list of float numbers, and sum(percent)<=1.  if percent much less than 1, then it would add the remainder automatically
+    return : dset_1, ..., dset_n.
+    """
+    data_arr = dtool.split(self.data,percents,False,axis)
+    label_arr = dtool.split(self.labels,percents,False,axis)
+    return [DataSubset(d,l) for d,l in zip(data_arr,label_arr)]
+
+  def feature_select(self,columns):
+    data = self.data[:,columns]
+    return DataSubset(data,self.labels)
+
+  @staticmethod
+  def join(list_of_dataset,axis=0):
+    ds = []
+    ls = []
+    for d in list_of_dataset:
+      ds.append(d.data)
+      ls.append(d.labels)
+    data = np.concatenate(ds,axis)
+    labels = np.concatenate(ls,axis)
+    return DataSubset(data,labels)
 
   @property
   def shape(self):
@@ -132,7 +157,7 @@ class Dataset(object):
     if data_dir:
       self.data_dir = data_dir
     else:
-      self.data_dir = tfs.config.dataset.getdir(self)
+      self.data_dir = tfs.g.config.dataset.getdir(self)
     self.prepare()
     _trainX, _trainY, _testX, _testY = self.load_train_test()
     self._train = DataSubset(_trainX,_trainY)
@@ -192,7 +217,7 @@ class Dataset(object):
 
   @data_dir.setter
   def data_dir(self,_dir):
-    tfs.config.dataset.setdir(self,_dir)
+    tfs.g.config.dataset.setdir(self,_dir)
     self._data_dir = _dir
 
 

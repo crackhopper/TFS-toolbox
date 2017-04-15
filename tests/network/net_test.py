@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 from tfs.network.base import Network,CustomNetwork
 import shutil
+import tfs.g
 
 class MyNet(CustomNetwork):
   def setup(self):
@@ -69,6 +70,28 @@ class TestNetwork:
       cmp=(n1.run(v)==n.run(n.variables[k]))
       assert cmp.all()
     assert n1.in_shape == n.in_shape
+    shutil.rmtree(tmpdir)
+
+  def test_save_load2(self,n,tmpdir):
+    n.build([None,10,10,4])
+    from tfs.core.optimizer import GradientDecentOptimizer
+    from tfs.core.loss import SquareError
+    from tfs.core.regularizers import L1
+    n.optimizer = GradientDecentOptimizer(n)
+    n.losser = SquareError(n)
+    n.regularizer = L1(n)
+
+    tmpdir = str(tmpdir)
+
+    n.save(tmpdir+'unbuild')
+
+    n1 = Network()
+    n1.load(tmpdir+'unbuild')
+    assert isinstance(n1.optimizer,GradientDecentOptimizer)
+    assert isinstance(n1.losser,SquareError)
+    assert isinstance(n1.regularizer,L1)
+    assert n1.optimizer.param ==n.optimizer.param
+
     shutil.rmtree(tmpdir)
 
   def test_device(self,n,capsys):

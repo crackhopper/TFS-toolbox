@@ -4,10 +4,12 @@ import numpy as np
 import tfs.core.layer.ops as ops
 
 from tfs.core.layer.conv import Conv2d
-
+from tfs.network import Network
+net = Network()
 @pytest.fixture
 def l():
   l = Conv2d(
+    net,
     ksize=[3,3],
     knum=10,
     strides=[1,1],
