@@ -86,6 +86,15 @@ class Layer(Component):
       self._initializers[vname]=init
       return v
 
+  def set_weights(self,weight_table):
+    with self.net.graph.as_default():
+      assign_table = {
+        n:tf.assign(self.variables[n],val)
+        for n,val in weight_table.items()
+      }
+      op = tf.group(*assign_table.values())
+      self.net.run(op)
+
   def _build(self):
     '''Run the layer. '''
     raise NotImplementedError('Must be implemented by the subclass.')

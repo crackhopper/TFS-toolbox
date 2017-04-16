@@ -58,7 +58,6 @@ class Initializer(Component):
     for n in self.net.net_def:
       for name in n.variables:
         v = n.variables[name]
-        init = n.initializers[name]
         self._cur_node = n
         self._cur_vname = name
         if self.ret_type == InitType.values:
