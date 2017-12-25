@@ -50,7 +50,7 @@ class Loss(Component):
         return info+'\n-----param-----\n'+pstr+'----------------'
 
 
-class CrossEntropy(Loss):
+class CrossEntropyByLogitLabel(Loss):
     def __init__(self,netobj,print_names=[]):
         Loss.__init__(self,netobj)
 
@@ -71,4 +71,4 @@ class SquareError(Loss):
         norm2=tf.norm(x,ord='euclidean')
         return tf.square(norm2)
 
-DefaultLoss=CrossEntropy
+DefaultLoss=CrossEntropyByLogitLabel

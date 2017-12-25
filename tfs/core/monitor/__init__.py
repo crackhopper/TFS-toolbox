@@ -30,9 +30,9 @@ class DefaultMonitor(Monitor):
     acc = self.net.score(test)
     X,y = train.current_batch
     loss = self.net.measure_loss(X,y)
-    print 'step %d. loss %f, test accuracy:%f'%(step,loss,acc)
+    print 'step %d. loss %f, score:%f'%(step,loss,acc)
 
-class InputVarMonitor(Monitor):
+class LayerInputVarMonitor(Monitor):
   def work(self,train,test,step,epoch):
     X,y = train.current_batch
     in_tensors = []
