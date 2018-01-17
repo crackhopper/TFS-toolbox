@@ -1,6 +1,6 @@
 from six.moves import urllib
-from base import Dataset,DataSubset
-import data_tool as dtool
+from tfs.dataset.base import Dataset,DataSubset
+import tfs.dataset.data_tool as dtool
 import numpy as np
 import os
 import tfs.g
@@ -13,7 +13,11 @@ def _tar_gz_extractor(f,d):
   tarfile.open(f, 'r:gz').extractall(d)
 
 def _gz_extractor(f,d):
-  foutpath = os.path.join(d,os.path.splitext(f)[0])
+  foutpath = os.path.join(d,os.path.splitext(os.path.basename(f))[0])
+  dir_name = os.path.dirname(foutpath)
+  if not os.path.exists(dir_name):
+    os.makedirs(dir_name)
+    
   with gzip.open(f,'rb') as f_in:
     with open(foutpath,'wb') as f_out:
       f_out.writelines(f_in)
@@ -71,12 +75,12 @@ class Online(Dataset):
             float(count * block_size) / float(total_size) * 100.0))
           sys.stdout.flush()
 
-        print ''
+        print('')
         filepath, _ = urllib.request.urlretrieve(link, filepath,
                                                  reporthook=_progress)
-        print ''
+        print('')
         statinfo = os.stat(filepath)
-        print 'Successfully downloaded', f, statinfo.st_size, 'bytes.'
+        print('Successfully downloaded', f, statinfo.st_size, 'bytes.')
 
 
   def extract(self):

@@ -1,21 +1,8 @@
 import pickle
 from tfs.core.layer import func_table,Layer
 from tfs.core.elem import Component
-#################### NetStructure
-def _layer_function(layerclass):
-  def func(self,*args,**kwargs):
-    layer = layerclass(self.net,*args,**kwargs)
-    self.append(layer)
-    return self
-  return func
-
-def _net_sturcture_meta(future_class_name, future_class_parents, future_class_attr):
-  for k in func_table:
-    future_class_attr[k]=_layer_function(func_table[k])
-  return type(future_class_name, future_class_parents, future_class_attr)
 
 class NetStructure(object):
-  __metaclass__ = _net_sturcture_meta
   """This class is used for define a network structure by using layers.
   """
   def __init__(self,net,nodes=None):

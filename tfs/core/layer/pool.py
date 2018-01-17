@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
-import ops
-from base import Layer
+from tfs.core.layer import ops as ops
+from tfs.core.layer.base import Layer
+from tfs.core.util import get_arg_dict
 
 class MaxPool(Layer):
   def __init__(self,
@@ -12,9 +13,7 @@ class MaxPool(Layer):
                name=None,
                print_names=['ksize','strides']
   ):
-    vtable = locals()
-    del vtable['self']
-    del vtable['net']
+    vtable = get_arg_dict(excludes=['self','net'])
     super(MaxPool,self).__init__(net,**vtable)
 
   def _build(self):
@@ -36,9 +35,9 @@ class MaxPool(Layer):
     outshape[0]=-1 # the first dimension is used for batch
     if outTensor.get_shape().ndims != 4:
       outTensor = tf.reshape(outTensor,outshape)
-    print outTensor.get_shape()
+    print(outTensor.get_shape())
     out = ops.max_unpool(outTensor,self._out,name)
-    print 'inv_max_pool ' + str(outTensor.get_shape().as_list()) + '->' + str(out.get_shape().as_list())
+    print('inv_max_pool ' + str(outTensor.get_shape().as_list()) + '->' + str(out.get_shape().as_list()))
     self._inv_out = out
     return out
 
@@ -52,9 +51,7 @@ class AvgPool(Layer):
                name=None,
                print_names=['ksize','strides']
   ):
-    vtable = locals()
-    del vtable['self']
-    del vtable['net']
+    vtable = get_arg_dict(excludes=['self','net'])
     super(MaxPool,self).__init__(net,**vtable)
 
   def build(self,inTensor):

@@ -1,7 +1,8 @@
 import tensorflow as tf
-import ops
-from base import Layer
+from tfs.core.layer import ops as ops
+from tfs.core.layer.base import Layer
 import tfs.core.initializer.init_func as init
+from tfs.core.util import get_arg_dict
 
 class Conv2d(Layer):
   def __init__(self,
@@ -16,9 +17,7 @@ class Conv2d(Layer):
                name=None,
                print_names=['knum','ksize','strides','padding','activation']
   ):
-    vtable = locals()
-    del vtable['self']
-    del vtable['net']
+    vtable = get_arg_dict(excludes=['self','net'])
     super(Conv2d,self).__init__(net,**vtable)
 
   def _build(self):
@@ -63,12 +62,13 @@ class Conv2d(Layer):
     act = self.param.activation
 
     n,w,h,c = self._in.get_shape().as_list()
-    c = c/group
+    c = c//group
     n = self.net.nsamples
 
     # Deconvolution for a given input and kernel
-    deconv = (lambda i, k:
-              tf.nn.conv2d_transpose(i, k, [n,w,h,c] ,[1, s_h, s_w, 1], padding=padding))
+    def deconv(i,k):
+      return tf.nn.conv2d_transpose(i, k, [n,w,h,c] ,[1, s_h, s_w, 1], padding=padding)
+
     if act:
       # TODO: only considered ReLU, don't know how to process other
       # activation functions
@@ -84,6 +84,6 @@ class Conv2d(Layer):
       output_groups = [deconv(i, k) for i, k in zip(input_groups, kernel_groups)]
       # Concatenate the groups
       output = tf.concat(output_groups,3)
-    print 'inv_conv '+str(outTensor.get_shape().as_list())+'->'+str(output.get_shape())
+    print('inv_conv '+str(outTensor.get_shape().as_list())+'->'+str(output.get_shape()))
     return output
 

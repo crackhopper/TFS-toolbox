@@ -1,2 +1,2 @@
-from base import Optimizer,DefaultOptimizer
-from base import GradientDecentOptimizer,AdamOptimizer
+from tfs.core.optimizer.base import Optimizer,DefaultOptimizer
+from tfs.core.optimizer.base import GradientDecentOptimizer,AdamOptimizer

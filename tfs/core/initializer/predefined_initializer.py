@@ -1,7 +1,8 @@
-from base import DefaultValueInit, DefaultOpInit
-import init_func
 import tensorflow as tf
 import numpy as np
+
+from tfs.core.initializer.base import DefaultValueInit, DefaultOpInit
+from tfs.core.initializer import init_func as init_func
 
 class DefaultInitializer(DefaultValueInit):
   def __init__(

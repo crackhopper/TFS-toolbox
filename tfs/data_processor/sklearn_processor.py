@@ -1,6 +1,11 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from sklearn import preprocessing
-from base import *
-from tfs.dataset.base import DataSubset
+from tfs.data_processor.base import *
+
+from tfs.dataset.subset import DataSubset
 
 class _SKLearnType(object):
   undecide = 0

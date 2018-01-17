@@ -1,10 +1,10 @@
 # inialize all: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/variables.py#L1139
 # how to call initializer: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/variable_scope.py#L686
-
 import tensorflow as tf
 import numpy as np
 import inspect
 from tfs.core.elem import Param,Component
+
 
 class InitType(object):
   values = 0
@@ -42,7 +42,7 @@ class Initializer(Component):
   def _debug_print_op(self):
     for k,v in self.init_table[1].items():
       vnet = self.net.variables[k]
-      print k,vnet.name, vnet.device,'<-',v.name,v.device
+      print(k,vnet.name, vnet.device,'<-',v.name,v.device)
 
   @property
   def init_table(self):

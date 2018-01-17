@@ -1,3 +1,3 @@
 
-from base import Network
-from base import CustomNetwork
+from tfs.network.base import Network
+from tfs.network.base import CustomNetwork

@@ -1,5 +1,5 @@
-from online_data import Online
-import data_tool as dtool
+from tfs.dataset.online_data import Online
+import tfs.dataset.data_tool as dtool
 import numpy as np
 import os
 
@@ -63,7 +63,7 @@ class Cifar10(Online):
   urls = {
     "cifar-10-python.tar.gz":"https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",
   }
-  filelists=['cifar-10-batches-py/data_batch_%d' % i for i in xrange(1, 6)]+['cifar-10-batches-py/test_batch']
+  filelists=['cifar-10-batches-py/data_batch_%d' % i for i in range(1, 6)]+['cifar-10-batches-py/test_batch']
   default_dir='cifar10'
   def load_train_test(self):
     trX,trY = self.load(self.filelists[0:5])
@@ -75,9 +75,13 @@ class Cifar10(Online):
   channels=3
   def load(self,filenames):
     def unpickle(file):
-      import cPickle
+      from six.moves import cPickle
+      import sys
       fo = open(file, 'rb')
-      dict = cPickle.load(fo)
+      if sys.version_info > (3, 0):
+        dict = cPickle.load(fo,encoding='latin1')
+      else:
+        dict = cPickle.load(fo)
       fo.close()
       return dict
     data = []

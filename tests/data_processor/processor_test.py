@@ -2,7 +2,7 @@ import pytest
 import tensorflow as tf
 import numpy as np
 
-from tfs.dataset import *
+from tfs.dataset.skdata import *
 from tfs.data_processor import StandardScaler,MinMaxScaler,Normalizer
 
 @pytest.fixture

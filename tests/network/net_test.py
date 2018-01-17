@@ -8,7 +8,7 @@ import tfs.g
 class MyNet(CustomNetwork):
   def setup(self):
     self.default_in_shape=[1,10,10,2]
-    (self.layers
+    (self
      .conv2d([3,3],4,[1,1],group=2)
      .maxpool([2,2],[2,2],name='out'))
     self.loss_input_layer_name = 'out'
@@ -96,21 +96,20 @@ class TestNetwork:
 
   def test_device(self,n,capsys):
     with capsys.disabled():
-      print ''
-      print [d.name for d in n.available_devices()]
+      print('')
+      print([d.name for d in n.available_devices()])
     has_gpu = ('GPU' in [d.device_type for d in n.available_devices()])
     if has_gpu:
       n.num_gpu=2
       n.build([None,10,10,4])
       with capsys.disabled():
         for i,o in zip(n.input,n.output):
-          print i.name,i.device
-          print o.name,o.device
-        #print n.tf_graph_str()
+          print(i.name,i.device)
+          print(o.name,o.device)
 
 
-    # TODO: after adding initializer, test the results are same
   def test_subnet(self,n):
+    # TODO: after adding initializer, test the results are same
     sub = n.subnet(0,1)
 
   def test_inference(self,n):

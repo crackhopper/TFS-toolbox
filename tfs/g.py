@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # Define the global singletons used in the package
 from os.path import expanduser
 import json

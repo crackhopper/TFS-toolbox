@@ -7,8 +7,8 @@ from tfs.core.monitor import DefaultMonitor
 from tfs.core.optimizer import DefaultOptimizer
 from tfs.core.layer import func_table,Layer
 from tfs.core.elem import Component
+from tfs.core.layer import ops
 import pickle
-import new
 
 import tensorflow as tf
 from tensorflow.python.util.deprecation import deprecated
@@ -20,7 +20,7 @@ from sklearn import metrics
 #
 # we use shared variables on CPU and model distributed on each GPU
 
-from net_struct import NetStructure
+from tfs.network.net_struct import NetStructure
 #################### Network
 # decorators
 def with_graph(f):
@@ -209,7 +209,7 @@ class Network(object):
     if self.loss is None:
       return
     if not self.num_gpu:
-      self.grads = self.optimizer.compute_gradients(self.loss,self.variables.values())
+      self.grads = self.optimizer.compute_gradients(self.loss,self.variables)
     else:
       tower_grads = []
       for i in range(self.num_gpu):
@@ -448,16 +448,105 @@ class Network(object):
 
   def print_shape(self):
     for l in self.nodes:
-      print '%-20s  %20s %s %-20s'%(
+      print('%-20s  %20s %s %-20s'%(
         l.name,
         l.input.get_shape(),
         '->',
-        l.output.get_shape())
+        l.output.get_shape()))
 
   def subnet(self,begin_index,end_index):
     obj = Network()
     obj.setup_with_def(self.layers[begin_index:end_index])
     return obj
+  def supported_layers(self):
+    return func_table.keys()
+
+  def conv2d(self,
+             ksize,
+             knum,
+             strides,
+             activation=ops.relu,
+             padding='SAME',
+             group=1,
+             biased=True,
+             name=None):
+    self.net_def.append(
+      func_table['conv2d'](
+        self,ksize,knum,strides,activation,padding,group,biased,name
+      ))
+    return self
+
+  def fc(self,
+         outdim,
+         activation = ops.relu,
+         name=None):
+    self.net_def.append(
+      func_table['fc'](
+        self,outdim,activation,name
+      ))
+    return self
+
+  def dropout(self,
+              keep_prob,
+              name=None):
+    self.net_def.append(
+      func_table['dropout'](
+        self,keep_prob,name
+      ))
+    return self
+
+  def lrn(self,
+          radius,
+          alpha,
+          beta,
+          bias=1.0,
+          name=None):
+    self.net_def.append(
+      func_table['lrn'](
+        self,radius,alpha,beta,bias,name
+      ))
+    return self
+
+  def bn(self,
+         scale_offset=True,
+         activation=ops.relu,
+         name=None):
+    self.net_def.append(
+      func_table['bn'](
+        self,scale_offset,activation,name
+      ))
+    return self
+
+  def softmax(self,
+              name=None):
+    self.net_def.append(
+      func_table['softmax'](
+        self,name
+      ))
+    return self
+
+  def maxpool(self,
+              ksize,
+              strides,
+              padding='SAME',
+              name=None):
+    self.net_def.append(
+      func_table['maxpool'](
+        self,ksize,strides,padding,name
+      ))
+    return self
+
+  def avgpool(self,
+              ksize,
+              strides,
+              padding='SAME',
+              name=None):
+    self.net_def.append(
+      func_table['avgpool'](
+        self,ksize,strides,padding,name
+      ))
+    return self
+
 
 
 class CustomNetwork(Network):

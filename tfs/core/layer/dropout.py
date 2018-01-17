@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
-import ops
-from base import Layer
+from tfs.core.layer import ops as ops
+from tfs.core.layer.base import Layer
+from tfs.core.util import get_arg_dict
 
 class Dropout(Layer):
   def __init__(self,
@@ -10,9 +11,7 @@ class Dropout(Layer):
                name=None,
                print_names=['keep_prob']
   ):
-    vtable = locals()
-    del vtable['self']
-    del vtable['net']
+    vtable = get_arg_dict(excludes=['self','net'])
     super(Dropout,self).__init__(net,**vtable)
 
   def _build(self):

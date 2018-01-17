@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import inspect
 from tfs.core.elem import Param,Component
+from tfs.core.util import get_arg_dict
 
 class Optimizer(Component):
   def __init__(self,net,**kwargs):
@@ -51,17 +52,13 @@ class Optimizer(Component):
 
 class GradientDecentOptimizer(Optimizer):
   def __init__(self,net,learning_rate=0.001,print_names=['learning_rate']):
-    vs = locals()
-    del vs['net']
-    del vs['self']
+    vs=get_arg_dict(excludes=['net','self'])
     super(GradientDecentOptimizer,self).__init__(net,**vs)
     self.opt = tf.train.GradientDescentOptimizer(learning_rate)
 
 class AdamOptimizer(Optimizer):
   def __init__(self,net,learning_rate=0.001,print_names=['learning_rate']):
-    vs = locals()
-    del vs['net']
-    del vs['self']
+    vs=get_arg_dict(excludes=['net','self'])
     super(AdamOptimizer,self).__init__(net,**vs)
     self.opt = tf.train.AdamOptimizer(learning_rate)
 

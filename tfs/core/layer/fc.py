@@ -1,8 +1,10 @@
 import tensorflow as tf
 import numpy as np
-import ops
-from base import Layer
+
+from tfs.core.layer import ops as ops
+from tfs.core.layer.base import Layer
 import tfs.core.initializer.init_func as init
+from tfs.core.util import get_arg_dict
 
 class FullyConnect(Layer):
   def __init__(self,
@@ -12,9 +14,7 @@ class FullyConnect(Layer):
                name=None,
                print_names=['outdim','activation']
   ):
-    vtable = locals()
-    del vtable['self']
-    del vtable['net']
+    vtable = get_arg_dict(excludes=['self','net'])
     super(FullyConnect,self).__init__(net,**vtable)
 
   def _build(self):
@@ -44,6 +44,6 @@ class FullyConnect(Layer):
     shape = self._in.get_shape().as_list()
     shape[0]=-1
     inv_fc = tf.reshape(inv_fc,shape)
-    print 'inv_fc '+str(outTensor.get_shape().as_list()) + '->' + str(inv_fc.get_shape().as_list())
+    print('inv_fc '+str(outTensor.get_shape().as_list()) + '->' + str(inv_fc.get_shape().as_list()))
     return inv_fc
 

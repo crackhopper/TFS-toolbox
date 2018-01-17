@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 import tensorflow as tf
 
@@ -36,7 +35,7 @@ def split(arr,percents,shuffle=True,dim=0):
     cur += nn
   curs.append(n)
 
-  idx = range(n)
+  idx = list(range(n))
   if shuffle:
     np.random.shuffle(idx)
 

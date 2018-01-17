@@ -1,4 +1,8 @@
-from util import *
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+from tfs.core.util.util import *
 import tensorflow as tf
 # decorators
 def run_once_for_each_obj(f):
@@ -22,3 +26,10 @@ class _Singleton(type):
         return cls._instances[cls]
 
 class Singleton(_Singleton('SingletonMeta', (object,), {})): pass
+
+import inspect
+def get_arg_dict(excludes=[]):
+  frame=inspect.currentframe()
+  f = frame.f_back
+  args, _, _, values = inspect.getargvalues(f)
+  return {k:values[k] for k in args if k not in excludes}

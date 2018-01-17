@@ -29,7 +29,7 @@ class TestParam:
 
   def test_str(self,param,capsys):
     with capsys.disabled():
-      print param,
+      print(param,)
 
 # test Layer
 Layer = base.Layer

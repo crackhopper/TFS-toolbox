@@ -105,12 +105,13 @@ class Layer(Component):
     return self._inv_out
 
   def _inverse(self):
-    print '%s doesn\'t define inverse op, ignore the layer'% type(self).__name__
+    print('%s doesn\'t define inverse op, ignore the layer'% type(self).__name__)
     return self._inv_in
 
   def copy_to(self,to_net):
     cls = type(self)
-    obj = cls(to_net,**self.param.__dict__)
+    args = self.param.__dict__
+    obj = cls(to_net,**args)
     return obj
 
   def __str__(self):

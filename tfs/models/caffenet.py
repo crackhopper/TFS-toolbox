@@ -2,7 +2,7 @@ from tfs.network.base import CustomNetwork
 class CaffeNet(CustomNetwork):
   def setup(self):
     self.default_in_shape = [None,227,227,3]
-    (self.net_def
+    (self
      .conv2d([11,11],96, [4,4], padding='VALID', name='conv1') # (1, 55, 55, 96)
      .maxpool([3, 3], [2,2] , padding='VALID', name='pool1') # (1, 27, 27, 96)
      .lrn(2, 2e-05, 0.75, name='norm1')

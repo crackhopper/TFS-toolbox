@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 from tfs.models import LeNet
 
-from tfs.dataset import Mnist
+from tfs.dataset.predefined import Mnist
 import tfs.g
 
 @pytest.fixture

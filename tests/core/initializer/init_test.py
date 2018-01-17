@@ -9,15 +9,15 @@ class TestInitConstant:
     netobj = LeNet()
     netobj.build()
     with capsys.disabled():
-      print ''
-      print netobj.initializer
+      print('')
+      print(netobj.initializer)
 
     netobj = LeNet()
     netobj.initializer = AllConstantInitializer(netobj)
     netobj.build()
     with capsys.disabled():
-      print ''
-      print netobj.initializer
+      print('')
+      print(netobj.initializer)
 
   def test_constant(self,capsys):
     netobj = LeNet()

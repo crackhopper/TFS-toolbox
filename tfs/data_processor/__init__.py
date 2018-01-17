@@ -1,2 +1,1 @@
-
-from sklearn_processor import LabelBinarizer,StandardScaler,MinMaxScaler,Normalizer
+from tfs.data_processor.sklearn_processor import LabelBinarizer,StandardScaler,MinMaxScaler,Normalizer

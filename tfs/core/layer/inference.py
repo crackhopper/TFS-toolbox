@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
-import ops
-from base import Layer
+from tfs.core.layer import ops as ops
+from tfs.core.layer.base import Layer
+from tfs.core.util import get_arg_dict
 
 class Softmax(Layer):
   def __init__(self,
@@ -9,9 +10,7 @@ class Softmax(Layer):
                name=None,
                print_names=[]
   ):
-    vtable = locals()
-    del vtable['self']
-    del vtable['net']
+    vtable = get_arg_dict(excludes=['self','net'])
     super(Softmax,self).__init__(net,**vtable)
 
   def _build(self):

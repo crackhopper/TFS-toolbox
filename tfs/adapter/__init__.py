@@ -1,1 +1,1 @@
-from deconv_vis import DeconvVisNet
+from tfs.adapter.deconv_vis import DeconvVisNet

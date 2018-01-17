@@ -3,8 +3,7 @@ import numpy as np
 import inspect
 from tfs.core.elem import Param,Component
 from tfs.core.layer.inference import Softmax
-
-
+from tfs.core.util import get_arg_dict
 
 class Regularizer(Component):
     def __init__(self,netobj,**kwargs):
@@ -18,9 +17,7 @@ class Regularizer(Component):
 
 class L1(Regularizer):
     def __init__(self,net,l1=0.01,nodes_params=None,print_names=['l1','nodes_params']):
-        vs = locals()
-        del vs['net']
-        del vs['self']
+        vs = get_arg_dict(excludes=['net','self'])
         super(L1,self).__init__(net,**vs)
         self.nodes_params=nodes_params
 
@@ -41,7 +38,7 @@ class L1(Regularizer):
             self.nodes_params=[self.param.l1 for i in range(len(self.net))]
         res=0.
         for index,param in enumerate(self.nodes_params):
-            for (var_name,var) in self.net.nodes[index].variables.iteritems():
+            for (var_name,var) in self.net.nodes[index].variables.items():
                 tmp=param*tf.abs(var)
                 res=tf.add(res,tf.reduce_sum(tmp,keep_dims=False))
         return res
@@ -51,9 +48,7 @@ class L1(Regularizer):
 
 class L2(Regularizer):
     def __init__(self,net,l2=0.01,nodes_params=None,print_names=['l2','nodes_params']):
-        vs = locals()
-        del vs['net']
-        del vs['self']
+        vs = get_arg_dict(excludes=['net','self'])
         super(L2,self).__init__(net,**vs)
         self.nodes_params=nodes_params
 
@@ -74,7 +69,7 @@ class L2(Regularizer):
             self.nodes_params=[self.param.l2 for i in range(len(self.net))]
         res=0.
         for index,param in enumerate(self.nodes_params):
-            for (var_name,var) in self.net.nodes[index].variables.iteritems():
+            for (var_name,var) in self.net.nodes[index].variables.items():
                 tmp=param*tf.square(var)
                 res=tf.add(res,tf.reduce_sum(tmp,keep_dims=False))
         return res

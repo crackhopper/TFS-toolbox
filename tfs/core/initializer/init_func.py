@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.ops import random_ops
 import math
+
 from tfs.core.elem import Param
 
 def xavier(factor=1.0,mode='FAN_AVG',uniform=True,seed=None):

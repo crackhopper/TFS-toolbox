@@ -1,10 +1,9 @@
-
-from conv import *
-from fc import *
-from inference import Softmax
-from normalization import LRN, BN
-from pool import MaxPool,AvgPool
-from dropout import Dropout
+from tfs.core.layer.conv import *
+from tfs.core.layer.fc import *
+from tfs.core.layer.inference import Softmax
+from tfs.core.layer.normalization import LRN, BN
+from tfs.core.layer.pool import MaxPool,AvgPool
+from tfs.core.layer.dropout import Dropout
 
 func_table = {
   'conv2d':Conv2d,

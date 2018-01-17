@@ -2,11 +2,11 @@ import pytest
 import tensorflow as tf
 import numpy as np
 from tfs.models import LeNet
-from tfs.core.loss import Loss,DefaultLoss,CrossEntropy,SquareError
+from tfs.core.loss import Loss,DefaultLoss,CrossEntropyByLogitLabel,SquareError
 from tfs.network.base import CustomNetwork
 from tfs.core.regularizers import Regularizer,L1,L2
 
-from tfs.dataset import Mnist
+from tfs.dataset.predefined import Mnist
 mnist=Mnist().to_one_hot()
 train_data=mnist.train
 X=train_data.data
@@ -18,7 +18,7 @@ class TenoutNet(CustomNetwork):
     Note : lr_mult parameter is different.
     """
     self.default_in_shape = [None,28,28,1]
-    (self.net_def
+    (self
      .conv2d([5,5],20,[1,1],activation=None,name='conv1',padding='VALID')
      .maxpool([2,2],[2,2],name='pool1',padding='VALID')
      .conv2d([5,5],50,[1,1],name='conv2',padding='VALID')
@@ -34,7 +34,7 @@ class TwooutNet(CustomNetwork):
     Note : lr_mult parameter is different.
     """
     self.default_in_shape = [None,28,28,1]
-    (self.net_def
+    (self
      .conv2d([5,5],20,[1,1],activation=None,name='conv1',padding='VALID')
      .maxpool([2,2],[2,2],name='pool1',padding='VALID')
      .conv2d([5,5],50,[1,1],name='conv2',padding='VALID')
@@ -50,7 +50,7 @@ class TwooutNetwithsoftmax(CustomNetwork):
     Note : lr_mult parameter is different.
     """
     self.default_in_shape = [None,28,28,1]
-    (self.net_def
+    (self
      .conv2d([5,5],20,[1,1],activation=None,name='conv1',padding='VALID')
      .maxpool([2,2],[2,2],name='pool1',padding='VALID')
      .conv2d([5,5],50,[1,1],name='conv2',padding='VALID')
@@ -70,8 +70,8 @@ class TestLoss:
         assert netobj.loss.get_shape().as_list()==[]
         loss=netobj.loss.eval(session=netobj.sess,feed_dict= {netobj.input:X[:100].reshape((100,28,28,1)),netobj.true_output: Y[:100]})
         with capsys.disabled():
-          print ""
-          print loss
+          print("")
+          print(loss)
 
         netobj=TenoutNet()
         netobj.build([100,28,28,1])
@@ -79,16 +79,16 @@ class TestLoss:
         assert netobj.loss.get_shape().as_list()==[]
         loss=netobj.loss.eval(session=netobj.sess,feed_dict= {netobj.input:X[:100].reshape((100,28,28,1)),netobj.true_output: Y[:100]})
         with capsys.disabled():
-          print ""
-          print loss
+          print("")
+          print(loss)
     def test_regulization(self,capsys):
       netobj=LeNet()
       netobj.Regularizer=L2(netobj,l2=0.2)
       netobj.build([100,28,28,1])
       loss=netobj.loss.eval(session=netobj.sess,feed_dict={netobj.input: X[:100].reshape((100,28,28,1)),netobj.true_output: Y[:100]})
       with capsys.disabled():
-        print ""
-        print loss
+        print("")
+        print(loss)
 
     def test_binarycrossentropy(self,capsys):
         netobj=TwooutNetwithsoftmax()
@@ -107,5 +107,5 @@ class TestLoss:
         assert netobj.true_output.get_shape().as_list()==netobj.output.get_shape().as_list()
         loss=netobj.loss.eval(session=netobj.sess,feed_dict={netobj.input:X[:100].reshape((100,28,28,1)),netobj.true_output:Y[:100]})
         with capsys.disabled():
-          print ""
-          print loss
+          print("")
+          print(loss)

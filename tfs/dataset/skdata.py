@@ -1,7 +1,8 @@
-import data_tool as dtool
 import numpy as np
-from base import Dataset
 import sklearn.datasets as skdata
+
+from tfs.dataset import data_tool as dtool
+from tfs.dataset.base import Dataset
 
 # TODO:
 # the following is not wrapped
